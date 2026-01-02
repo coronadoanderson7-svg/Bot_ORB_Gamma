@@ -1,0 +1,63 @@
+# Trading Bot Configuration
+
+# ==============================================================================
+# IB API Connection Settings
+# ==============================================================================
+connection:
+  host: 127.0.0.1
+  port: 7497          # Default for TWS: 7497, Default for IB Gateway: 4002
+  client_id: 1
+
+# ==============================================================================
+# Account Settings
+# ==============================================================================
+account:
+  type: "paper"      # "paper" for paper trading, "live" for real money.
+  code: ""           # Your IB account code (e.g., "U1234567"). Leave blank if not needed.
+
+# ==============================================================================
+# Trading Instrument and Market
+# ==============================================================================
+instrument:
+  ticker: "SPX"  # Ticker symbol (e.g., SPX, AAPL)
+  exchange: "CBOE" # Primary exchange for the instrument
+  currency: "USD"
+
+# ==============================================================================
+# Stage 1: Opening Range
+# ==============================================================================
+opening_range:
+  market_open_time: "09:30:00" # Market open time in 'HH:MM:SS' format (local time of exchange)
+  duration_minutes: 30         # Duration in minutes to establish the opening range
+  bar_size: "1 min"            # Bar size for historical data to determine the range
+
+# ==============================================================================
+# Stage 2: Breakout Detection
+# ==============================================================================
+breakout:
+  bar_size_seconds: 300 # Bar size in seconds for real-time data (e.g., 300 for 5-min candles)
+
+# ==============================================================================
+# Stage 3: Gamma Exposure (GEX) Analysis
+# ==============================================================================
+gex:
+  use_0dte: True       # Whether to use 0DTE options for GEX analysis
+  option_multiplier: 100 # Standard multiplier for options contracts
+
+# ==============================================================================
+# Stage 4: Trade Execution
+# ==============================================================================
+trade_execution:
+  take_profit_percentage: 0.20 # 20% gain
+  stop_loss_percentage: 0.30   # 30% loss
+  order_defaults:
+    entry_order_type: "LMT"
+    tp_order_type: "LMT"
+    sl_order_type: "STP"
+
+# ==============================================================================
+# Logging Configuration
+# ==============================================================================
+logging:
+  log_level: "INFO" # Options: DEBUG, INFO, WARNING, ERROR, CRITICAL
+  log_file: "trading_bot.log"

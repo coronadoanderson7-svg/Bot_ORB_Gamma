@@ -1,0 +1,8 @@
+ibapi>=9.76.1
+pandas>=2.0.0
+numpy>=1.24.0
+pytz>=2023.3
+schedule>=1.2.0
+loguru>=0.7.0
+PyYAML>=6.0
+pydantic>=2.0.0
