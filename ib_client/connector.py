@@ -121,3 +121,63 @@ class IBConnector:
         current_id = self.next_order_id
         self.next_order_id += 1
         return current_id
+
+    # --- Data Request Methods ---
+
+    def req_historical_data(self, req_id: int, contract, end_date_time: str, duration_str: str, bar_size_setting: str, what_to_show: str, use_rth: int, format_date: int, keep_up_to_date: bool):
+        """
+        Requests historical data for a contract.
+        """
+        logger.info(f"Requesting historical data. ReqId: {req_id}, Symbol: {contract.symbol}")
+        self.client.reqHistoricalData(req_id, contract, end_date_time, duration_str, bar_size_setting, what_to_show, use_rth, format_date, keep_up_to_date, [])
+
+    def req_real_time_bars(self, req_id: int, contract, bar_size: int, what_to_show: str, use_rth: bool):
+        """
+        Requests real-time bars.
+        """
+        logger.info(f"Requesting real-time bars. ReqId: {req_id}, Symbol: {contract.symbol}")
+        self.client.reqRealTimeBars(req_id, contract, bar_size, what_to_show, use_rth, [])
+
+    def cancel_real_time_bars(self, req_id: int):
+        """
+        Cancels real-time bars subscription.
+        """
+        logger.info(f"Cancelling real-time bars. ReqId: {req_id}")
+        self.client.cancelRealTimeBars(req_id)
+
+    def req_sec_def_opt_params(self, req_id: int, underlying_symbol: str, fut_fop_exchange: str, underlying_sec_type: str, underlying_con_id: int):
+        """
+        Requests security definition option parameters (strikes, expirations).
+        """
+        logger.info(f"Requesting option params. ReqId: {req_id}, Symbol: {underlying_symbol}")
+        self.client.reqSecDefOptParams(req_id, underlying_symbol, fut_fop_exchange, underlying_sec_type, underlying_con_id)
+
+    def req_market_data(self, req_id: int, contract, generic_tick_list: str, snapshot: bool, regulatory_snapshot: bool):
+        """
+        Requests market data (ticks).
+        """
+        logger.info(f"Requesting market data. ReqId: {req_id}, Symbol: {contract.symbol}")
+        self.client.reqMktData(req_id, contract, generic_tick_list, snapshot, regulatory_snapshot, [])
+
+    def cancel_market_data(self, req_id: int):
+        """
+        Cancels market data subscription.
+        """
+        logger.info(f"Cancelling market data. ReqId: {req_id}")
+        self.client.cancelMktData(req_id)
+
+    # --- Order Management Methods ---
+
+    def place_order(self, order_id: int, contract, order):
+        """
+        Places an order.
+        """
+        logger.info(f"Placing order. OrderId: {order_id}, Action: {order.action}, Qty: {order.totalQuantity}, Symbol: {contract.symbol}")
+        self.client.placeOrder(order_id, contract, order)
+
+    def req_positions(self):
+        """
+        Requests current positions.
+        """
+        logger.info("Requesting positions.")
+        self.client.reqPositions()

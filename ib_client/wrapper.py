@@ -26,6 +26,14 @@ class IBWrapper(EWrapper):
         self.realtime_bar_queue = Queue()
         self.error_queue = Queue()
         self.next_valid_id_queue = Queue()
+        self.option_computation_queue = Queue()
+        self.tick_size_queue = Queue()
+        self.tick_price_queue = Queue()
+        self.sec_def_opt_params_queue = Queue()
+        self.order_status_queue = Queue()
+        self.open_order_queue = Queue()
+        self.execution_details_queue = Queue()
+        self.position_queue = Queue()
 
     def error(self, reqId: int, errorCode: int, errorString: str, advancedOrderReject=""):
         """
@@ -68,7 +76,7 @@ class IBWrapper(EWrapper):
         Callback for historical data requests.
         """
         logger.debug(f"HistoricalData ReqId: {reqId}, Bar: {bar}")
-        # self.historical_data_queue.put((reqId, bar))
+        self.historical_data_queue.put((reqId, bar))
 
     def historicalDataEnd(self, reqId: int, start: str, end: str):
         """
@@ -76,7 +84,7 @@ class IBWrapper(EWrapper):
         """
         super().historicalDataEnd(reqId, start, end)
         logger.debug(f"HistoricalDataEnd ReqId: {reqId}")
-        # self.historical_data_queue.put((reqId, None)) # Sentinel value
+        self.historical_data_queue.put((reqId, None)) # Sentinel value
 
     def realtimeBar(self, reqId: int, time: int, open_: float, high: float, low: float, close: float,
                     volume: int, wap: float, count: int):
@@ -84,19 +92,112 @@ class IBWrapper(EWrapper):
         Callback for real-time bar data.
         """
         super().realtimeBar(reqId, time, open_, high, low, close, volume, wap, count)
-        logger.debug(f"RealTimeBar ReqId: {reqId}")
-        # self.realtime_bar_queue.put((reqId, bar_data))
+        
+        bar_data = {
+            "time": time,
+            "open": open_,
+            "high": high,
+            "low": low,
+            "close": close,
+            "volume": volume,
+            "wap": wap,
+            "count": count
+        }
+        logger.debug(f"RealTimeBar ReqId: {reqId} : {bar_data}")
+        self.realtime_bar_queue.put((reqId, bar_data))
         
     def contractDetails(self, reqId: int, contractDetails):
         """
         Receives contract details.
         """
         super().contractDetails(reqId, contractDetails)
-        # self.contract_details_queue.put((reqId, contractDetails))
+        self.contract_details_queue.put((reqId, contractDetails))
 
     def contractDetailsEnd(self, reqId: int):
         """
         Signals the end of a contract details stream.
         """
         super().contractDetailsEnd(reqId)
-        # self.contract_details_queue.put((reqId, None)) # Sentinel value
+        self.contract_details_queue.put((reqId, None)) # Sentinel value
+
+    def tickOptionComputation(self, reqId: int, tickType: int, tickAttrib: int, impliedVol: float, delta: float, optPrice: float, pvDividend: float, gamma: float, vega: float, theta: float, undPrice: float):
+        """
+        Callback for option specific data (Greeks, IV).
+        """
+        super().tickOptionComputation(reqId, tickType, tickAttrib, impliedVol, delta, optPrice, pvDividend, gamma, vega, theta, undPrice)
+        data = {
+            "tickType": tickType,
+            "impliedVol": impliedVol,
+            "delta": delta,
+            "optPrice": optPrice,
+            "gamma": gamma,
+            "vega": vega,
+            "theta": theta,
+            "undPrice": undPrice
+        }
+        # logger.debug(f"OptionComputation ReqId: {reqId} Data: {data}")
+        self.option_computation_queue.put((reqId, data))
+
+    def tickSize(self, reqId: int, tickType: int, size):
+        """
+        Callback for size-related ticks.
+        TickType 27 is specifically Open Interest.
+        """
+        super().tickSize(reqId, tickType, size)
+        self.tick_size_queue.put((reqId, tickType, size))
+
+    def tickPrice(self, reqId: int, tickType: int, price: float, attrib):
+        """
+        Callback for price-related ticks (Last, Bid, Ask, etc.).
+        """
+        super().tickPrice(reqId, tickType, price, attrib)
+        self.tick_price_queue.put((reqId, tickType, price, attrib))
+
+    def securityDefinitionOptionParameter(self, reqId: int, exchange: str, underlyingConId: int, tradingClass: str, multiplier: str, expirations, strikes):
+        """
+        Callback for receiving option chain structure (strikes and expirations).
+        """
+        super().securityDefinitionOptionParameter(reqId, exchange, underlyingConId, tradingClass, multiplier, expirations, strikes)
+        self.sec_def_opt_params_queue.put((reqId, exchange, underlyingConId, tradingClass, multiplier, expirations, strikes))
+
+    def securityDefinitionOptionParameterEnd(self, reqId: int):
+        """
+        Signals the end of option chain data.
+        """
+        super().securityDefinitionOptionParameterEnd(reqId)
+        self.sec_def_opt_params_queue.put((reqId, None))
+
+    def orderStatus(self, orderId: int, status: str, filled: float, remaining: float, avgFillPrice: float, permId: int, parentId: int, lastFillPrice: float, clientId: int, whyHeld: str, mktCapPrice: float):
+        """
+        Callback for order status updates (Submitted, Filled, Cancelled).
+        """
+        super().orderStatus(orderId, status, filled, remaining, avgFillPrice, permId, parentId, lastFillPrice, clientId, whyHeld, mktCapPrice)
+        self.order_status_queue.put((orderId, status, filled, remaining, avgFillPrice))
+
+    def openOrder(self, orderId: int, contract, order, orderState):
+        """
+        Callback for current open orders.
+        """
+        super().openOrder(orderId, contract, order, orderState)
+        self.open_order_queue.put((orderId, contract, order, orderState))
+
+    def execDetails(self, reqId: int, contract, execution):
+        """
+        Callback for trade execution details.
+        """
+        super().execDetails(reqId, contract, execution)
+        self.execution_details_queue.put((reqId, contract, execution))
+
+    def position(self, account: str, contract, position: float, avgCost: float):
+        """
+        Callback for current portfolio positions.
+        """
+        super().position(account, contract, position, avgCost)
+        self.position_queue.put((account, contract, position, avgCost))
+
+    def positionEnd(self):
+        """
+        Signals the end of the position list.
+        """
+        super().positionEnd()
+        self.position_queue.put(None)
