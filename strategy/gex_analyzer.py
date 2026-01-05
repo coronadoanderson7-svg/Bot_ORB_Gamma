@@ -8,6 +8,7 @@ import logging
 import time
 from datetime import datetime, date, timedelta
 from typing import Dict, Any, List, Optional, Tuple
+from queue import Empty
 from ibapi.contract import Contract
 
 from core.logging_setup import logger
@@ -46,12 +47,12 @@ class GEXAnalyzer:
         self.next_req_id += 1
         return self.next_req_id
 
-    def find_and_calculate_gex(self) -> Optional[float]:
+    def find_and_calculate_gex(self) -> Optional[Tuple[float, str]]:
         """
         The main public method to orchestrate the entire GEX calculation process.
         
         Returns:
-            The strike price with the highest absolute GEX, or None if calculation fails.
+            A tuple containing (highest_gex_strike, target_expiration), or None if calculation fails.
         """
         self.logger.info("Starting GEX calculation process...")
 
@@ -80,15 +81,16 @@ class GEXAnalyzer:
             return None
         self.logger.info(f"Target expiration date found: {target_expiration}")
 
-        # Step 4 & 5: Get the current underlying price to find ATM strikes
-        # A proper implementation would fetch the spot price via reqMktData.
-        # For now, we approximate it from the middle of the returned strikes.
-        approx_spot_price = sorted(strikes)[len(strikes) // 2]
-        self.logger.warning(f"Using approximate spot price: {approx_spot_price}")
+        # Step 4: Get the current underlying price to find ATM strikes
+        spot_price = self._get_underlying_spot_price(underlying_contract)
+        if spot_price is None:
+            self.logger.error("Failed to fetch spot price for the underlying. Aborting GEX.")
+            return None
+        self.logger.info(f"Successfully fetched spot price: {spot_price}")
 
-        # Filter strikes around the approximate ATM price
-        atm_strikes = self._filter_strikes(strikes, approx_spot_price)
-        self.logger.info(f"Found {len(atm_strikes)} strikes to analyze around ~{approx_spot_price}.")
+        # Step 5: Filter strikes around the ATM price
+        atm_strikes = self._filter_strikes(strikes, spot_price)
+        self.logger.info(f"Found {len(atm_strikes)} strikes to analyze around {spot_price}.")
 
         # Step 6, 7, 8: Calculate GEX for each strike
         gex_per_strike = self._calculate_gex_for_strikes(target_expiration, atm_strikes)
@@ -101,7 +103,47 @@ class GEXAnalyzer:
         
         self.logger.info(f"GEX Calculation Complete. Highest GEX Strike: {highest_gex_strike} (GEX: {gex_per_strike[highest_gex_strike]:.2f})")
         
-        return highest_gex_strike
+        return highest_gex_strike, target_expiration
+
+    def _get_underlying_spot_price(self, contract: Contract) -> Optional[float]:
+        """
+        Requests and retrieves the last traded price for the underlying contract.
+        """
+        req_id = self.get_next_req_id()
+        self.logger.info(f"Requesting spot price for {contract.symbol} (ReqId: {req_id})...")
+        
+        # Request market data with a snapshot. Generic tick list "4" is for Last Price.
+        self.ib_connector.req_market_data(req_id, contract, "4", True, False)
+
+        try:
+            start_time = time.time()
+            while time.time() - start_time < 10: # 10-second timeout
+                try:
+                    # Non-blocking get from the queue
+                    q_req_id, tick_type, price, _ = self.ib_connector.wrapper.tick_price_queue.get_nowait()
+                    
+                    if q_req_id == req_id:
+                        # TickType 4 is Last Price
+                        if tick_type == 4:
+                            self.logger.info(f"Received spot price: {price} for ReqId: {req_id}")
+                            return price
+                        # TickType 9 is Close Price, a fallback if last price isn't available
+                        elif tick_type == 9:
+                            self.logger.warning(f"Last price not available, using close price: {price}")
+                            return price
+
+                except Empty:
+                    time.sleep(0.1) # Wait briefly before trying again
+            
+            self.logger.error(f"Timeout waiting for spot price for ReqId: {req_id}")
+            return None
+
+        except Exception as e:
+            self.logger.exception(f"Error fetching spot price: {e}")
+            return None
+        finally:
+            # Always cancel the market data request
+            self.ib_connector.cancel_market_data(req_id)
 
     def _create_underlying_contract(self) -> Contract:
         """Creates the contract object for the underlying security."""

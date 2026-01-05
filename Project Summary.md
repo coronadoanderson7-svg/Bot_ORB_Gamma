@@ -96,7 +96,7 @@ Part 1: Open Trade (Conditional Entry)
 Get ATM: Find the At-The-Money strike closest to current Spot_Price.
 Define Contract: Build the 0DTE Call/Put Option_Contract.
 Bullish Check: IF (Signal is BULLISH) AND (Highest_Gamma_Strike > Spot_Price) → Long Call.
-Bearish Check: IF (Signal is BEARISH) AND (Highest_Gamma_Strike < Spot_Price) → Short Put.
+Bearish Check: IF (Signal is BEARISH) AND (Highest_Gamma_Strike < Spot_Price) → Long Put.
 Entry Price: Request Mid Price for the option to set $P_{entry}$.
 Exit Levels:
     Take Profit ($P_{TP}$): $P_{entry} \times (1 + 0.20)$.

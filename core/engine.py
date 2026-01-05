@@ -11,7 +11,7 @@ defined in the project summary.
 import time
 from datetime import datetime, timedelta
 from queue import Empty
-from dataclasses import dataclass
+from typing import Optional
 
 # IB API imports
 from ibapi.contract import Contract
@@ -23,20 +23,9 @@ from ib_client.connector import IBConnector
 from strategy import OpeningRangeStrategy, BarLike as OpeningRangeBar
 from strategy import BreakoutStrategy, BarLike as BreakoutBar
 from strategy.gex_analyzer import GEXAnalyzer
+from execution.order_manager import OrderManager
 
-# A simple, consistent bar data model for internal use
-@dataclass
-class Bar:
-    timestamp: datetime
-    open: float
-    high: float
-    low: float
-    close: float
-    volume: int
-
-# Ensure our internal Bar class is compatible with strategy protocols
-assert issubclass(Bar, OpeningRangeBar)
-assert issubclass(Bar, BreakoutBar)
+from models.data_models import Bar, Signal, SignalType
 
 class Engine:
     """
@@ -50,16 +39,23 @@ class Engine:
         self.state = "INITIALIZING"
 
         self.ib_connector = IBConnector()
-        self.orb_strategy = OpeningRangeStrategy.from_config(self.config)
-        self.breakout_strategy = BreakoutStrategy.from_config(self.config)
+        
+        # Create contract first, as it's needed by strategies
+        self.contract = self._create_contract()
+
+        # Initialize strategies with config dict and symbol
+        self.orb_strategy = OpeningRangeStrategy.from_config(self.config.dict())
+        self.breakout_strategy = BreakoutStrategy.from_config(self.config.dict(), self.contract.symbol)
         self.gex_analyzer = GEXAnalyzer(self.ib_connector, self.config.dict())
+        self.order_manager = OrderManager(self.ib_connector)
 
         # State variables
-        self.contract = self._create_contract()
         self.orb_high: float = 0.0
         self.orb_low: float = 0.0
-        self.breakout_signal: str = "NO SIGNAL"
+        self.breakout_signal: Optional[Signal] = None
+        self.spot_price: float = 0.0
         self.highest_gex_strike: float = 0.0
+        self.option_expiration: str | None = None
         
         self.next_req_id = 0
         self.rt_bars_req_id = None # To hold the specific ID for the real-time subscription
@@ -111,8 +107,7 @@ class Engine:
         elif self.state == "ANALYZING_GEX":
             self._state_analyze_gex()
         elif self.state == "PENDING_TRADE_EXECUTION":
-            logger.info("State: PENDING_TRADE_EXECUTION. Logic not implemented. Shutting down.")
-            self.state = "SHUTDOWN"
+            self._state_execute_trade()
         elif self.state == "SHUTDOWN":
             return
         else:
@@ -124,6 +119,7 @@ class Engine:
         try:
             self.ib_connector.connect()
             if self.ib_connector.is_connected():
+                logger.info("OrderManager initialized.")
                 self.state = "GETTING_OPENING_RANGE"
         except ConnectionError as e:
             logger.error(f"Connection failed: {e}. Retrying in 10 seconds...")
@@ -208,9 +204,14 @@ class Engine:
 
                 signal = self.breakout_strategy.add_realtime_bar(bar, self.orb_high, self.orb_low)
 
-                if signal != "NO SIGNAL":
-                    logger.info(f"!!! BREAKOUT DETECTED: {signal} !!!")
+                if signal.signal_type != SignalType.HOLD:
+                    logger.info(f"!!! BREAKOUT DETECTED: {signal.signal_type.value} !!!")
                     self.breakout_signal = signal
+                    if signal.price:
+                        self.spot_price = signal.price # Capture the price at breakout
+                    else:
+                        self.spot_price = bar.close # Fallback to bar close
+                    
                     self.state = "ANALYZING_GEX"
                     self.ib_connector.cancel_real_time_bars(self.rt_bars_req_id)
                     self.rt_bars_req_id = None # Clear the ID
@@ -228,15 +229,35 @@ class Engine:
         # First, we need to update GEXAnalyzer to use the new contract resolution feature.
         # This is a critical step before this can run successfully.
         
-        highest_gex = self.gex_analyzer.find_and_calculate_gex()
+        gex_result = self.gex_analyzer.find_and_calculate_gex()
 
-        if highest_gex:
-            self.highest_gex_strike = highest_gex
-            logger.info(f"Highest GEX strike identified: {self.highest_gex_strike}")
+        if gex_result:
+            self.highest_gex_strike, self.option_expiration = gex_result
+            logger.info(f"Highest GEX strike identified: {self.highest_gex_strike} for expiration {self.option_expiration}")
             self.state = "PENDING_TRADE_EXECUTION"
         else:
             logger.error("GEX analysis failed. Shutting down.")
             self.state = "SHUTDOWN"
+
+    def _state_execute_trade(self):
+        """Executes Stage 4: Places the trade via the OrderManager."""
+        logger.info("Executing trade...")
+
+        if not all([self.order_manager, self.option_expiration, self.breakout_signal]):
+            logger.error("OrderManager, expiration, or breakout signal not set. Cannot place trade. Shutting down.")
+            self.state = "SHUTDOWN"
+            return
+            
+        self.order_manager.place_trade(
+            signal=self.breakout_signal,
+            spot_price=self.spot_price,
+            highest_gamma_strike=self.highest_gex_strike,
+            expiration=self.option_expiration
+        )
+        
+        logger.info("Trade order has been placed. For now, the bot will shut down.")
+        # In a real application, you would transition to a state to monitor the open position.
+        self.state = "SHUTDOWN"
 
     def shutdown(self):
         """Gracefully shuts down the trading engine."""
