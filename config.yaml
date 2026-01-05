@@ -41,8 +41,9 @@ breakout:
 # Stage 3: Gamma Exposure (GEX) Analysis
 # ==============================================================================
 gex:
-  use_0dte: True       # Whether to use 0DTE options for GEX analysis
-  option_multiplier: 100 # Standard multiplier for options contracts
+  days_to_expiration: 0       # 0 for 0DTE, 1 for 1DTE, etc.
+  strikes_quantity: 120       # Total number of strikes to fetch (centered around ATM)
+  option_multiplier: 100      # Standard multiplier for options contracts
 
 # ==============================================================================
 # Stage 4: Trade Execution

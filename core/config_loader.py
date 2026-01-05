@@ -44,7 +44,8 @@ class BreakoutConfig(BaseModel):
 
 class GEXConfig(BaseModel):
     """Schema for Gamma Exposure (GEX) Analysis stage."""
-    use_0dte: bool
+    days_to_expiration: int = Field(..., ge=0)
+    strikes_quantity: int = Field(..., gt=0)
     option_multiplier: int
 
 class OrderDefaultsConfig(BaseModel):

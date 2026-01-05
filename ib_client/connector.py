@@ -112,7 +112,7 @@ class IBConnector:
 
     def get_next_order_id(self) -> int:
         """
-        Returns the next valid order ID.
+        Returns the next valid order ID and increments it.
         """
         if not self.next_order_id:
             logger.error("Next order ID is not available. Check connection.")
@@ -122,7 +122,55 @@ class IBConnector:
         self.next_order_id += 1
         return current_id
 
+    def resolve_contract_details(self, contract, timeout: int = 10):
+        """
+        Resolves a contract to get its full details, including conId.
+        This is a blocking operation.
+
+        Args:
+            contract: An ibapi.contract.Contract with enough info to be unique.
+            timeout: Max seconds to wait for a response.
+
+        Returns:
+            The first matching ibapi.contract.ContractDetails object, or None.
+        """
+        req_id = self.get_next_order_id()
+        self.req_contract_details(req_id, contract)
+
+        try:
+            # Wait for the first result or timeout
+            q_req_id, details = self.wrapper.contract_details_queue.get(timeout=timeout)
+
+            if q_req_id != req_id:
+                logger.error(f"Received contract details for unexpected reqId.")
+                return None
+
+            # The API may send multiple matches. We will take the first one.
+            # We must also consume the "End" signal from the queue.
+            while True:
+                end_req_id, _ = self.wrapper.contract_details_queue.get(timeout=timeout)
+                if end_req_id == req_id:
+                    break # Found the end for our request
+            
+            if details:
+                logger.info(f"Resolved contract for {contract.symbol}. ConId: {details.contract.conId}")
+                return details
+            else:
+                logger.warning(f"Could not resolve contract for {contract.symbol}. Received empty details.")
+                return None
+
+        except Empty:
+            logger.error(f"Timeout resolving contract for {contract.symbol}. No response from TWS.")
+            return None
+
     # --- Data Request Methods ---
+
+    def req_contract_details(self, req_id: int, contract):
+        """
+        Requests contract details for a given contract.
+        """
+        logger.info(f"Requesting contract details. ReqId: {req_id}, Symbol: {contract.symbol}")
+        self.client.reqContractDetails(req_id, contract)
 
     def req_historical_data(self, req_id: int, contract, end_date_time: str, duration_str: str, bar_size_setting: str, what_to_show: str, use_rth: int, format_date: int, keep_up_to_date: bool):
         """

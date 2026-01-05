@@ -20,8 +20,9 @@ from ibapi.contract import Contract
 from .logging_setup import logger
 from .config_loader import APP_CONFIG
 from ib_client.connector import IBConnector
-from opening_range import OpeningRangeStrategy, BarLike as OpeningRangeBar
-from breakout import BreakoutStrategy, BarLike as BreakoutBar
+from strategy import OpeningRangeStrategy, BarLike as OpeningRangeBar
+from strategy import BreakoutStrategy, BarLike as BreakoutBar
+from strategy.gex_analyzer import GEXAnalyzer
 
 # A simple, consistent bar data model for internal use
 @dataclass
@@ -51,12 +52,17 @@ class Engine:
         self.ib_connector = IBConnector()
         self.orb_strategy = OpeningRangeStrategy.from_config(self.config)
         self.breakout_strategy = BreakoutStrategy.from_config(self.config)
+        self.gex_analyzer = GEXAnalyzer(self.ib_connector, self.config.dict())
 
         # State variables
         self.contract = self._create_contract()
         self.orb_high: float = 0.0
         self.orb_low: float = 0.0
+        self.breakout_signal: str = "NO SIGNAL"
+        self.highest_gex_strike: float = 0.0
+        
         self.next_req_id = 0
+        self.rt_bars_req_id = None # To hold the specific ID for the real-time subscription
 
         logger.info(f"Engine initialized. Trading Mode: {self.config.account.type.upper()}, Ticker: {self.config.instrument.ticker}")
 
@@ -69,7 +75,8 @@ class Engine:
         """Creates the primary contract object from config."""
         contract = Contract()
         contract.symbol = self.config.instrument.ticker
-        contract.secType = "STK" # Assuming Stock for now, adjust if needed (e.g., "IND" for indices)
+        # This should ideally be part of the config
+        contract.secType = "IND" if contract.symbol == "SPX" else "STK"
         contract.exchange = self.config.instrument.exchange
         contract.currency = self.config.instrument.currency
         return contract
@@ -101,6 +108,11 @@ class Engine:
             self._state_get_opening_range()
         elif self.state == "MONITORING_BREAKOUT":
             self._state_monitor_for_breakout()
+        elif self.state == "ANALYZING_GEX":
+            self._state_analyze_gex()
+        elif self.state == "PENDING_TRADE_EXECUTION":
+            logger.info("State: PENDING_TRADE_EXECUTION. Logic not implemented. Shutting down.")
+            self.state = "SHUTDOWN"
         elif self.state == "SHUTDOWN":
             return
         else:
@@ -150,7 +162,7 @@ class Engine:
             bars_received = []
             while True:
                 # Use a short timeout to prevent blocking indefinitely if the queue is empty before the sentinel
-                reqId, data = self.ib_connector.wrapper.historical_data_queue.get(timeout=20)
+                _, data = self.ib_connector.wrapper.historical_data_queue.get(timeout=20)
                 
                 if data is None: # Sentinel value marks the end
                     logger.info("End of historical data stream received.")
@@ -181,13 +193,13 @@ class Engine:
 
     def _state_monitor_for_breakout(self):
         """Executes Stage 2: Breakout Detection."""
-        req_id = self.get_next_req_id()
-        logger.info(f"Requesting 5-second real-time bars to monitor for breakout.")
-        self.ib_connector.req_real_time_bars(req_id, self.contract, 5, "TRADES", True)
+        self.rt_bars_req_id = self.get_next_req_id()
+        logger.info(f"Requesting 5-second real-time bars to monitor for breakout. (ReqId: {self.rt_bars_req_id})")
+        self.ib_connector.req_real_time_bars(self.rt_bars_req_id, self.contract, 5, "TRADES", True)
 
         try:
             while self.state == "MONITORING_BREAKOUT":
-                reqId, data = self.ib_connector.wrapper.realtime_bar_queue.get(timeout=60)
+                _, data = self.ib_connector.wrapper.realtime_bar_queue.get(timeout=60)
                 
                 bar = Bar(
                     timestamp=datetime.fromtimestamp(data['time']),
@@ -198,16 +210,33 @@ class Engine:
 
                 if signal != "NO SIGNAL":
                     logger.info(f"!!! BREAKOUT DETECTED: {signal} !!!")
-                    logger.info("Transitioning to next stage (not implemented). Shutting down for now.")
-                    # In future, would transition to "GEX_ANALYSIS" or "TRADE_EXECUTION"
-                    self.state = "SHUTDOWN"
-                    # self.ib_connector.cancel_real_time_bars(req_id) # Important cleanup
+                    self.breakout_signal = signal
+                    self.state = "ANALYZING_GEX"
+                    self.ib_connector.cancel_real_time_bars(self.rt_bars_req_id)
+                    self.rt_bars_req_id = None # Clear the ID
                     break # Exit monitoring loop
 
         except Empty:
             logger.warning("No real-time bars received in the last 60 seconds. Checking connection.")
             if not self.ib_connector.is_connected():
                 self.state = "CONNECTING"
+
+    def _state_analyze_gex(self):
+        """Executes Stage 3: GEX Analysis."""
+        logger.info("Performing GEX analysis...")
+        
+        # First, we need to update GEXAnalyzer to use the new contract resolution feature.
+        # This is a critical step before this can run successfully.
+        
+        highest_gex = self.gex_analyzer.find_and_calculate_gex()
+
+        if highest_gex:
+            self.highest_gex_strike = highest_gex
+            logger.info(f"Highest GEX strike identified: {self.highest_gex_strike}")
+            self.state = "PENDING_TRADE_EXECUTION"
+        else:
+            logger.error("GEX analysis failed. Shutting down.")
+            self.state = "SHUTDOWN"
 
     def shutdown(self):
         """Gracefully shuts down the trading engine."""
@@ -216,12 +245,11 @@ class Engine:
             
         logger.info("Shutting down trading engine...")
         
-        # Find and cancel any active real-time bar subscriptions
-        # This is a simplification; a real app would track request IDs.
-        if self.next_req_id > 0:
-            logger.info("Attempting to cancel all active data subscriptions.")
-            for i in range(1, self.next_req_id + 1):
-                self.ib_connector.cancel_real_time_bars(i)
+        # Cancel any active real-time bar subscriptions
+        if self.rt_bars_req_id:
+            logger.info(f"Cancelling active real-time bar subscription: {self.rt_bars_req_id}")
+            self.ib_connector.cancel_real_time_bars(self.rt_bars_req_id)
+            self.rt_bars_req_id = None
 
         if self.ib_connector and self.ib_connector.is_connected():
             self.ib_connector.disconnect()
