@@ -26,7 +26,7 @@ class IBWrapper(EWrapper):
         self.realtime_bar_queue = Queue()
         self.error_queue = Queue()
         self.next_valid_id_queue = Queue()
-        self.option_computation_queue = Queue()
+        self.option_greeks_queue = Queue()
         self.tick_size_queue = Queue()
         self.tick_price_queue = Queue()
         self.sec_def_opt_params_queue = Queue()
@@ -34,6 +34,9 @@ class IBWrapper(EWrapper):
         self.open_order_queue = Queue()
         self.execution_details_queue = Queue()
         self.position_queue = Queue()
+        
+        # Internal state for assembling fragmented data
+        self._option_chain_data = {}
 
     def error(self, reqId: int, errorCode: int, errorString: str, advancedOrderReject=""):
         """
@@ -136,7 +139,7 @@ class IBWrapper(EWrapper):
             "undPrice": undPrice
         }
         # logger.debug(f"OptionComputation ReqId: {reqId} Data: {data}")
-        self.option_computation_queue.put((reqId, data))
+        self.option_greeks_queue.put((reqId, data))
 
     def tickSize(self, reqId: int, tickType: int, size):
         """
@@ -156,16 +159,41 @@ class IBWrapper(EWrapper):
     def securityDefinitionOptionParameter(self, reqId: int, exchange: str, underlyingConId: int, tradingClass: str, multiplier: str, expirations, strikes):
         """
         Callback for receiving option chain structure (strikes and expirations).
+        This method aggregates the data before putting it on the queue.
         """
         super().securityDefinitionOptionParameter(reqId, exchange, underlyingConId, tradingClass, multiplier, expirations, strikes)
-        self.sec_def_opt_params_queue.put((reqId, exchange, underlyingConId, tradingClass, multiplier, expirations, strikes))
+        if reqId not in self._option_chain_data:
+            self._option_chain_data[reqId] = {
+                "exchange": exchange,
+                "underlyingConId": underlyingConId,
+                "tradingClass": tradingClass,
+                "multiplier": multiplier,
+                "expirations": set(),
+                "strikes": set()
+            }
+        
+        # Expirations and strikes can be sent in chunks
+        self._option_chain_data[reqId]["expirations"].update(expirations)
+        self._option_chain_data[reqId]["strikes"].update(strikes)
 
     def securityDefinitionOptionParameterEnd(self, reqId: int):
         """
-        Signals the end of option chain data.
+        Signals the end of option chain data. The fully assembled data is now
+        put on the queue.
         """
         super().securityDefinitionOptionParameterEnd(reqId)
-        self.sec_def_opt_params_queue.put((reqId, None))
+        if reqId in self._option_chain_data:
+            # Convert sets to sorted lists for consistent output
+            self._option_chain_data[reqId]["expirations"] = sorted(list(self._option_chain_data[reqId]["expirations"]))
+            self._option_chain_data[reqId]["strikes"] = sorted(list(self._option_chain_data[reqId]["strikes"]))
+            
+            # Put the complete data onto the queue and clean up
+            self.sec_def_opt_params_queue.put((reqId, self._option_chain_data[reqId]))
+            del self._option_chain_data[reqId]
+        else:
+            logger.warning(f"Received OptionParameterEnd for unknown reqId: {reqId}")
+            # Put a sentinel value to unblock any waiting consumer
+            self.sec_def_opt_params_queue.put((reqId, None))
 
     def orderStatus(self, orderId: int, status: str, filled: float, remaining: float, avgFillPrice: float, permId: int, parentId: int, lastFillPrice: float, clientId: int, whyHeld: str, mktCapPrice: float):
         """

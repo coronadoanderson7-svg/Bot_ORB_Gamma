@@ -35,7 +35,8 @@ class IBConnector:
         
         self.connection_thread = None
         self._is_connected = False
-        self.next_order_id = None
+        self._next_request_id = 0
+        self._request_id_lock = threading.Lock()
 
         logger.info("IBConnector initialized.")
 
@@ -76,9 +77,12 @@ class IBConnector:
         """
         logger.info("Waiting for connection to be established...")
         try:
-            self.next_order_id = self.wrapper.next_valid_id_queue.get(timeout=timeout)
+            next_id = self.wrapper.next_valid_id_queue.get(timeout=timeout)
+            with self._request_id_lock:
+                self._next_request_id = next_id
+            
             self._is_connected = True
-            logger.info(f"Connection established successfully. Next Order ID: {self.next_order_id}")
+            logger.info(f"Connection established successfully. Next Request ID seed: {next_id}")
         except Empty:
             logger.error(f"Connection failed: Did not receive nextValidId in {timeout} seconds.")
             self.disconnect()
@@ -108,19 +112,21 @@ class IBConnector:
 
         logger.info("Disconnected successfully.")
 
-    # --- Placeholder methods for data and order operations ---
-
-    def get_next_order_id(self) -> int:
+    def get_next_request_id(self) -> int:
         """
-        Returns the next valid order ID and increments it.
+        Returns the next valid request ID in a thread-safe manner.
+        This is the single source of truth for all request IDs.
         """
-        if not self.next_order_id:
-            logger.error("Next order ID is not available. Check connection.")
+        if not self.is_connected():
+            logger.error("Cannot get next request ID, not connected.")
             return -1
         
-        current_id = self.next_order_id
-        self.next_order_id += 1
+        with self._request_id_lock:
+            current_id = self._next_request_id
+            self._next_request_id += 1
         return current_id
+
+    # --- Placeholder methods for data and order operations ---
 
     def resolve_contract_details(self, contract, timeout: int = 10):
         """
@@ -134,7 +140,7 @@ class IBConnector:
         Returns:
             The first matching ibapi.contract.ContractDetails object, or None.
         """
-        req_id = self.get_next_order_id()
+        req_id = self.get_next_request_id()
         self.req_contract_details(req_id, contract)
 
         try:
@@ -162,6 +168,7 @@ class IBConnector:
         except Empty:
             logger.error(f"Timeout resolving contract for {contract.symbol}. No response from TWS.")
             return None
+
 
     # --- Data Request Methods ---
 
@@ -216,10 +223,11 @@ class IBConnector:
 
     # --- Order Management Methods ---
 
-    def place_order(self, order_id: int, contract, order):
+    def place_order(self, contract, order):
         """
         Places an order.
         """
+        order_id = self.get_next_request_id()
         logger.info(f"Placing order. OrderId: {order_id}, Action: {order.action}, Qty: {order.totalQuantity}, Symbol: {contract.symbol}")
         self.client.placeOrder(order_id, contract, order)
 

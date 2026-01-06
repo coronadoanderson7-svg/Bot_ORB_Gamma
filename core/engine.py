@@ -57,15 +57,9 @@ class Engine:
         self.highest_gex_strike: float = 0.0
         self.option_expiration: str | None = None
         
-        self.next_req_id = 0
         self.rt_bars_req_id = None # To hold the specific ID for the real-time subscription
 
         logger.info(f"Engine initialized. Trading Mode: {self.config.account.type.upper()}, Ticker: {self.config.instrument.ticker}")
-
-    def get_next_req_id(self):
-        """Generates a unique request ID."""
-        self.next_req_id += 1
-        return self.next_req_id
 
     def _create_contract(self) -> Contract:
         """Creates the primary contract object from config."""
@@ -139,7 +133,7 @@ class Engine:
             time.sleep(wait_seconds + 5) # Add a 5-second buffer
 
         # --- 2. Build the request with correct parameters ---
-        req_id = self.get_next_req_id()
+        req_id = self.ib_connector.get_next_request_id()
         
         # Correctly format endDateTime and durationStr
         end_date_time_str = range_end_dt.strftime("%Y%m%d %H:%M:%S")
@@ -189,7 +183,7 @@ class Engine:
 
     def _state_monitor_for_breakout(self):
         """Executes Stage 2: Breakout Detection."""
-        self.rt_bars_req_id = self.get_next_req_id()
+        self.rt_bars_req_id = self.ib_connector.get_next_request_id()
         logger.info(f"Requesting 5-second real-time bars to monitor for breakout. (ReqId: {self.rt_bars_req_id})")
         self.ib_connector.req_real_time_bars(self.rt_bars_req_id, self.contract, 5, "TRADES", True)
 
