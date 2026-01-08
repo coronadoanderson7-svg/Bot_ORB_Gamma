@@ -10,6 +10,7 @@ defined in the project summary.
 """
 import time
 from datetime import datetime, timedelta
+import pytz
 from queue import Empty
 from typing import Optional
 
@@ -122,15 +123,31 @@ class Engine:
     def _state_get_opening_range(self):
         """Executes Stage 1: Opening Range Identification."""
         # --- 1. Wait until the opening range period has passed ---
+        try:
+            exchange_tz_str = self.config.instrument.exchange_timezone
+            exchange_tz = pytz.timezone(exchange_tz_str)
+        except (pytz.UnknownTimeZoneError, AttributeError):
+            logger.error(
+                "Configuration error: `exchange_timezone` is missing or invalid in config.yaml under `instrument`."
+                " Please add it (e.g., 'America/New_York'). Shutting down."
+            )
+            self.state = "SHUTDOWN"
+            return
+
+        now_in_exchange_tz = datetime.now(exchange_tz)
+        today = now_in_exchange_tz.date()
+
         market_open_time = datetime.strptime(self.config.opening_range.market_open_time, "%H:%M:%S").time()
-        today = datetime.now().date()
-        market_open_dt = datetime.combine(today, market_open_time)
+        market_open_dt_naive = datetime.combine(today, market_open_time)
+        market_open_dt = exchange_tz.localize(market_open_dt_naive)
+
         range_end_dt = market_open_dt + timedelta(minutes=self.config.opening_range.duration_minutes)
 
-        if datetime.now() < range_end_dt:
-            wait_seconds = (range_end_dt - datetime.now()).total_seconds()
+        if now_in_exchange_tz < range_end_dt:
+            wait_seconds = (range_end_dt - now_in_exchange_tz).total_seconds()
             logger.info(f"Waiting for opening range to complete. Sleeping for {wait_seconds:.0f} seconds.")
-            time.sleep(wait_seconds + 5) # Add a 5-second buffer
+            # Add a configurable buffer to ensure the period is fully complete
+            time.sleep(wait_seconds + self.config.opening_range.wait_buffer_seconds)
 
         # --- 2. Build the request with correct parameters ---
         req_id = self.ib_connector.get_next_request_id()
@@ -141,7 +158,10 @@ class Engine:
         duration_str = f"{duration_seconds} S"
         bar_size = self.config.opening_range.bar_size
         
-        logger.info(f"Requesting historical data for opening range. End: {end_date_time_str}, Duration: {duration_str}")
+        logger.info(
+            f"Requesting historical data for opening range. End: {end_date_time_str} ({exchange_tz_str}), "
+            f"Duration: {duration_str}"
+        )
         self.ib_connector.req_historical_data(
             req_id, self.contract, end_date_time=end_date_time_str, duration_str=duration_str,
             bar_size_setting=bar_size, what_to_show="TRADES", use_rth=1, format_date=1, keep_up_to_date=False
@@ -152,7 +172,9 @@ class Engine:
             bars_received = []
             while True:
                 # Use a short timeout to prevent blocking indefinitely if the queue is empty before the sentinel
-                _, data = self.ib_connector.wrapper.historical_data_queue.get(timeout=20)
+                _, data = self.ib_connector.wrapper.historical_data_queue.get(
+                    timeout=self.config.opening_range.historical_data_timeout_seconds
+                )
                 
                 if data is None: # Sentinel value marks the end
                     logger.info("End of historical data stream received.")
