@@ -38,12 +38,13 @@ class IBWrapper(EWrapper):
         # Internal state for assembling fragmented data
         self._option_chain_data = {}
 
-    def error(self, reqId: int, errorCode: int, errorString: str, advancedOrderReject=""):
+    #def error(self, reqId: int, errorCode: int, errorString: str, advancedOrderReject=""):
+    def error(self, reqId: int, errorCode: int, errorString: str):
         """
         Handles error messages from TWS.
         - reqId -1 indicates a system-level message, not related to a specific request.
         """
-        super().error(reqId, errorCode, errorString, advancedOrderReject)
+        super().error(reqId, errorCode, errorString)
         # IB's "error" callback is also used for informational messages.
         # Codes 2100-2110 are info messages about connectivity.
         # We will log them as INFO and not put them in the error queue to avoid

@@ -31,6 +31,7 @@ class InstrumentConfig(BaseModel):
     ticker: str
     exchange: str
     currency: str
+    exchange_timezone: str
 
 class OpeningRangeConfig(BaseModel):
     """Schema for Opening Range stage."""

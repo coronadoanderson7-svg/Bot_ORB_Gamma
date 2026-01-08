@@ -124,6 +124,7 @@ class Engine:
         """Executes Stage 1: Opening Range Identification."""
         # --- 1. Wait until the opening range period has passed ---
         try:
+            logger.info(f"{self.config.instrument.exchange_timezone} ***********************")
             exchange_tz_str = self.config.instrument.exchange_timezone
             exchange_tz = pytz.timezone(exchange_tz_str)
         except (pytz.UnknownTimeZoneError, AttributeError):

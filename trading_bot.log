@@ -1,0 +1,509 @@
+2026-01-07 19:40:29.642 | INFO     | core.logging_setup:<module>:42 - Logger initialized successfully.
+2026-01-07 19:40:29.861 | INFO     | __main__:main:16 - Starting the trading bot application.
+2026-01-07 19:40:29.862 | INFO     | core.engine:__init__:38 - Initializing Trading Engine...
+2026-01-07 19:40:29.863 | INFO     | ib_client.client:__init__:27 - IBClient initialized.
+2026-01-07 19:40:29.864 | INFO     | ib_client.connector:__init__:41 - IBConnector initialized.
+2026-01-07 19:40:29.871 | INFO     | core.engine:__init__:63 - Engine initialized. Trading Mode: PAPER, Ticker: SPX
+2026-01-07 19:40:29.872 | INFO     | core.engine:run:77 - Starting engine event loop...
+2026-01-07 19:40:29.872 | INFO     | core.engine:_process_state:94 - --- Processing State: CONNECTING ---
+2026-01-07 19:40:29.873 | INFO     | ib_client.connector:connect:55 - Connecting to IB TWS/Gateway at 127.0.0.1:4002 with ClientID 1...
+2026-01-07 19:40:30.406 | INFO     | ib_client.connector:connect:64 - Connection thread started.
+2026-01-07 19:40:30.406 | INFO     | ib_client.connector:_wait_for_connection:78 - Waiting for connection to be established...
+2026-01-07 19:40:30.678 | INFO     | ib_client.wrapper:nextValidId:71 - Successfully connected to IB. Next valid Order ID: 1
+2026-01-07 19:40:30.685 | INFO     | ib_client.connector:_wait_for_connection:85 - Connection established successfully. Next Request ID seed: 1
+2026-01-07 19:40:30.687 | INFO     | core.engine:_state_connect:117 - OrderManager initialized.
+2026-01-07 19:40:30.818 | WARNING  | ib_client.wrapper:connectionClosed:62 - Connection to IB TWS/Gateway lost.
+2026-01-07 19:40:31.690 | INFO     | core.engine:_process_state:94 - --- Processing State: GETTING_OPENING_RANGE ---
+2026-01-07 19:40:31.691 | ERROR    | core.engine:_state_get_opening_range:130 - Configuration error: `exchange_timezone` is missing or invalid in config.yaml under `instrument`. Please add it (e.g., 'America/New_York'). Shutting down.
+2026-01-07 19:40:32.693 | INFO     | core.engine:shutdown:283 - Shutting down trading engine...
+2026-01-07 19:40:32.694 | INFO     | ib_client.connector:disconnect:102 - Disconnecting from IB TWS/Gateway...
+2026-01-07 19:40:32.702 | INFO     | ib_client.connector:disconnect:113 - Disconnected successfully.
+2026-01-07 19:40:32.711 | INFO     | core.engine:shutdown:295 - Engine has been shut down.
+2026-01-07 19:40:32.757 | INFO     | __main__:main:28 - Shutting down the trading bot.
+2026-01-07 19:47:53.359 | INFO     | core.logging_setup:<module>:42 - Logger initialized successfully.
+2026-01-07 19:47:53.574 | INFO     | __main__:main:16 - Starting the trading bot application.
+2026-01-07 19:47:53.575 | INFO     | core.engine:__init__:38 - Initializing Trading Engine...
+2026-01-07 19:47:53.576 | INFO     | ib_client.client:__init__:27 - IBClient initialized.
+2026-01-07 19:47:53.577 | INFO     | ib_client.connector:__init__:41 - IBConnector initialized.
+2026-01-07 19:47:53.585 | INFO     | core.engine:__init__:63 - Engine initialized. Trading Mode: PAPER, Ticker: SPX
+2026-01-07 19:47:53.586 | INFO     | core.engine:run:77 - Starting engine event loop...
+2026-01-07 19:47:53.587 | INFO     | core.engine:_process_state:94 - --- Processing State: CONNECTING ---
+2026-01-07 19:47:53.588 | INFO     | ib_client.connector:connect:55 - Connecting to IB TWS/Gateway at 127.0.0.1:4002 with ClientID 1...
+2026-01-07 19:47:53.753 | INFO     | ib_client.connector:connect:64 - Connection thread started.
+2026-01-07 19:47:53.754 | INFO     | ib_client.connector:_wait_for_connection:78 - Waiting for connection to be established...
+2026-01-07 19:47:53.793 | INFO     | ib_client.wrapper:nextValidId:72 - Successfully connected to IB. Next valid Order ID: 1
+2026-01-07 19:47:53.795 | INFO     | ib_client.connector:_wait_for_connection:85 - Connection established successfully. Next Request ID seed: 1
+2026-01-07 19:47:53.796 | INFO     | ib_client.wrapper:error:53 - IB Info: ReqId: -1, Code: 2104, Msg: Market data farm connection is OK:usfarm
+2026-01-07 19:47:53.796 | INFO     | core.engine:_state_connect:117 - OrderManager initialized.
+2026-01-07 19:47:53.802 | INFO     | ib_client.wrapper:error:53 - IB Info: ReqId: -1, Code: 2107, Msg: HMDS data farm connection is inactive but should be available upon demand.ushmds
+2026-01-07 19:47:53.816 | INFO     | ib_client.wrapper:error:53 - IB Info: ReqId: -1, Code: 2158, Msg: Sec-def data farm connection is OK:secdefil
+2026-01-07 19:47:54.807 | INFO     | core.engine:_process_state:94 - --- Processing State: GETTING_OPENING_RANGE ---
+2026-01-07 19:47:54.827 | ERROR    | core.engine:_state_get_opening_range:130 - Configuration error: `exchange_timezone` is missing or invalid in config.yaml under `instrument`. Please add it (e.g., 'America/New_York'). Shutting down.
+2026-01-07 19:47:55.858 | INFO     | core.engine:shutdown:283 - Shutting down trading engine...
+2026-01-07 19:47:55.860 | INFO     | ib_client.connector:disconnect:102 - Disconnecting from IB TWS/Gateway...
+2026-01-07 19:47:56.027 | WARNING  | ib_client.wrapper:connectionClosed:63 - Connection to IB TWS/Gateway lost.
+2026-01-07 19:47:56.031 | INFO     | ib_client.connector:disconnect:108 - Waiting for connection thread to terminate.
+2026-01-07 19:47:56.044 | WARNING  | ib_client.wrapper:connectionClosed:63 - Connection to IB TWS/Gateway lost.
+2026-01-07 19:47:56.052 | INFO     | ib_client.connector:disconnect:113 - Disconnected successfully.
+2026-01-07 19:47:56.053 | INFO     | core.engine:shutdown:295 - Engine has been shut down.
+2026-01-07 19:47:56.055 | INFO     | __main__:main:28 - Shutting down the trading bot.
+2026-01-07 19:49:40.868 | INFO     | core.logging_setup:<module>:42 - Logger initialized successfully.
+2026-01-07 19:49:40.972 | INFO     | __main__:main:16 - Starting the trading bot application.
+2026-01-07 19:49:40.973 | INFO     | core.engine:__init__:38 - Initializing Trading Engine...
+2026-01-07 19:49:40.974 | INFO     | ib_client.client:__init__:27 - IBClient initialized.
+2026-01-07 19:49:40.974 | INFO     | ib_client.connector:__init__:41 - IBConnector initialized.
+2026-01-07 19:49:40.982 | INFO     | core.engine:__init__:63 - Engine initialized. Trading Mode: PAPER, Ticker: SPX
+2026-01-07 19:49:40.983 | INFO     | core.engine:run:77 - Starting engine event loop...
+2026-01-07 19:49:40.984 | INFO     | core.engine:_process_state:94 - --- Processing State: CONNECTING ---
+2026-01-07 19:49:40.986 | INFO     | ib_client.connector:connect:55 - Connecting to IB TWS/Gateway at 127.0.0.1:4002 with ClientID 1...
+2026-01-07 19:49:41.053 | INFO     | ib_client.connector:connect:64 - Connection thread started.
+2026-01-07 19:49:41.055 | INFO     | ib_client.connector:_wait_for_connection:78 - Waiting for connection to be established...
+2026-01-07 19:49:41.076 | INFO     | ib_client.wrapper:nextValidId:72 - Successfully connected to IB. Next valid Order ID: 1
+2026-01-07 19:49:41.080 | INFO     | ib_client.connector:_wait_for_connection:85 - Connection established successfully. Next Request ID seed: 1
+2026-01-07 19:49:41.082 | INFO     | ib_client.wrapper:error:53 - IB Info: ReqId: -1, Code: 2104, Msg: Market data farm connection is OK:usfarm
+2026-01-07 19:49:41.082 | INFO     | core.engine:_state_connect:117 - OrderManager initialized.
+2026-01-07 19:49:41.085 | INFO     | ib_client.wrapper:error:53 - IB Info: ReqId: -1, Code: 2107, Msg: HMDS data farm connection is inactive but should be available upon demand.ushmds
+2026-01-07 19:49:41.090 | INFO     | ib_client.wrapper:error:53 - IB Info: ReqId: -1, Code: 2158, Msg: Sec-def data farm connection is OK:secdefil
+2026-01-07 19:49:42.085 | INFO     | core.engine:_process_state:94 - --- Processing State: GETTING_OPENING_RANGE ---
+2026-01-07 19:49:42.087 | ERROR    | core.engine:_state_get_opening_range:130 - Configuration error: `exchange_timezone` is missing or invalid in config.yaml under `instrument`. Please add it (e.g., 'America/New_York'). Shutting down.
+2026-01-07 19:49:43.090 | INFO     | core.engine:shutdown:283 - Shutting down trading engine...
+2026-01-07 19:49:43.091 | INFO     | ib_client.connector:disconnect:102 - Disconnecting from IB TWS/Gateway...
+2026-01-07 19:49:43.095 | WARNING  | ib_client.wrapper:connectionClosed:63 - Connection to IB TWS/Gateway lost.
+2026-01-07 19:49:43.097 | INFO     | ib_client.connector:disconnect:108 - Waiting for connection thread to terminate.
+2026-01-07 19:49:43.204 | INFO     | ib_client.connector:disconnect:113 - Disconnected successfully.
+2026-01-07 19:49:43.205 | INFO     | core.engine:shutdown:295 - Engine has been shut down.
+2026-01-07 19:49:43.206 | INFO     | __main__:main:28 - Shutting down the trading bot.
+2026-01-07 19:50:41.212 | INFO     | core.logging_setup:<module>:42 - Logger initialized successfully.
+2026-01-07 19:50:41.313 | INFO     | __main__:main:16 - Starting the trading bot application.
+2026-01-07 19:50:41.314 | INFO     | core.engine:__init__:38 - Initializing Trading Engine...
+2026-01-07 19:50:41.316 | INFO     | ib_client.client:__init__:27 - IBClient initialized.
+2026-01-07 19:50:41.316 | INFO     | ib_client.connector:__init__:41 - IBConnector initialized.
+2026-01-07 19:50:41.324 | INFO     | core.engine:__init__:63 - Engine initialized. Trading Mode: PAPER, Ticker: SPX
+2026-01-07 19:50:41.325 | INFO     | core.engine:run:77 - Starting engine event loop...
+2026-01-07 19:50:41.328 | INFO     | core.engine:_process_state:94 - --- Processing State: CONNECTING ---
+2026-01-07 19:50:41.329 | INFO     | ib_client.connector:connect:55 - Connecting to IB TWS/Gateway at 127.0.0.1:4002 with ClientID 1...
+2026-01-07 19:50:41.356 | INFO     | ib_client.connector:connect:64 - Connection thread started.
+2026-01-07 19:50:41.357 | INFO     | ib_client.connector:_wait_for_connection:78 - Waiting for connection to be established...
+2026-01-07 19:50:41.369 | INFO     | ib_client.wrapper:nextValidId:72 - Successfully connected to IB. Next valid Order ID: 1
+2026-01-07 19:50:41.371 | INFO     | ib_client.connector:_wait_for_connection:85 - Connection established successfully. Next Request ID seed: 1
+2026-01-07 19:50:41.371 | INFO     | ib_client.wrapper:error:53 - IB Info: ReqId: -1, Code: 2104, Msg: Market data farm connection is OK:usfarm
+2026-01-07 19:50:41.372 | INFO     | core.engine:_state_connect:117 - OrderManager initialized.
+2026-01-07 19:50:41.373 | INFO     | ib_client.wrapper:error:53 - IB Info: ReqId: -1, Code: 2107, Msg: HMDS data farm connection is inactive but should be available upon demand.ushmds
+2026-01-07 19:50:41.378 | INFO     | ib_client.wrapper:error:53 - IB Info: ReqId: -1, Code: 2158, Msg: Sec-def data farm connection is OK:secdefil
+2026-01-07 19:50:42.374 | INFO     | core.engine:_process_state:94 - --- Processing State: GETTING_OPENING_RANGE ---
+2026-01-07 19:50:42.376 | ERROR    | core.engine:_state_get_opening_range:130 - Configuration error: `exchange_timezone` is missing or invalid in config.yaml under `instrument`. Please add it (e.g., 'America/New_York'). Shutting down.
+2026-01-07 19:50:43.378 | INFO     | core.engine:shutdown:283 - Shutting down trading engine...
+2026-01-07 19:50:43.379 | INFO     | ib_client.connector:disconnect:102 - Disconnecting from IB TWS/Gateway...
+2026-01-07 19:50:43.381 | WARNING  | ib_client.wrapper:connectionClosed:63 - Connection to IB TWS/Gateway lost.
+2026-01-07 19:50:43.381 | INFO     | ib_client.connector:disconnect:108 - Waiting for connection thread to terminate.
+2026-01-07 19:50:43.409 | INFO     | ib_client.connector:disconnect:113 - Disconnected successfully.
+2026-01-07 19:50:43.412 | INFO     | core.engine:shutdown:295 - Engine has been shut down.
+2026-01-07 19:50:43.415 | INFO     | __main__:main:28 - Shutting down the trading bot.
+2026-01-07 20:03:04.863 | INFO     | core.logging_setup:<module>:42 - Logger initialized successfully.
+2026-01-07 20:03:04.964 | INFO     | __main__:main:16 - Starting the trading bot application.
+2026-01-07 20:03:04.965 | INFO     | core.engine:__init__:38 - Initializing Trading Engine...
+2026-01-07 20:03:04.966 | INFO     | ib_client.client:__init__:27 - IBClient initialized.
+2026-01-07 20:03:04.966 | INFO     | ib_client.connector:__init__:41 - IBConnector initialized.
+2026-01-07 20:03:04.979 | INFO     | core.engine:__init__:63 - Engine initialized. Trading Mode: PAPER, Ticker: SPX
+2026-01-07 20:03:04.980 | INFO     | core.engine:run:77 - Starting engine event loop...
+2026-01-07 20:03:04.981 | INFO     | core.engine:_process_state:94 - --- Processing State: CONNECTING ---
+2026-01-07 20:03:04.982 | INFO     | ib_client.connector:connect:55 - Connecting to IB TWS/Gateway at 127.0.0.1:4002 with ClientID 1...
+2026-01-07 20:03:05.125 | INFO     | ib_client.connector:connect:64 - Connection thread started.
+2026-01-07 20:03:05.126 | INFO     | ib_client.connector:_wait_for_connection:78 - Waiting for connection to be established...
+2026-01-07 20:03:05.203 | INFO     | ib_client.wrapper:nextValidId:72 - Successfully connected to IB. Next valid Order ID: 1
+2026-01-07 20:03:05.204 | INFO     | ib_client.connector:_wait_for_connection:85 - Connection established successfully. Next Request ID seed: 1
+2026-01-07 20:03:05.205 | INFO     | core.engine:_state_connect:117 - OrderManager initialized.
+2026-01-07 20:03:05.249 | INFO     | ib_client.wrapper:error:53 - IB Info: ReqId: -1, Code: 2104, Msg: Market data farm connection is OK:usfarm
+2026-01-07 20:03:05.334 | INFO     | ib_client.wrapper:error:53 - IB Info: ReqId: -1, Code: 2106, Msg: HMDS data farm connection is OK:ushmds
+2026-01-07 20:03:05.371 | INFO     | ib_client.wrapper:error:53 - IB Info: ReqId: -1, Code: 2158, Msg: Sec-def data farm connection is OK:secdefil
+2026-01-07 20:03:06.206 | INFO     | core.engine:_process_state:94 - --- Processing State: GETTING_OPENING_RANGE ---
+2026-01-07 20:03:06.207 | ERROR    | core.engine:_state_get_opening_range:130 - Configuration error: `exchange_timezone` is missing or invalid in config.yaml under `instrument`. Please add it (e.g., 'America/New_York'). Shutting down.
+2026-01-07 20:03:07.209 | INFO     | core.engine:shutdown:283 - Shutting down trading engine...
+2026-01-07 20:03:07.209 | INFO     | ib_client.connector:disconnect:102 - Disconnecting from IB TWS/Gateway...
+2026-01-07 20:03:07.215 | WARNING  | ib_client.wrapper:connectionClosed:63 - Connection to IB TWS/Gateway lost.
+2026-01-07 20:03:07.219 | INFO     | ib_client.connector:disconnect:108 - Waiting for connection thread to terminate.
+2026-01-07 20:03:07.265 | INFO     | ib_client.connector:disconnect:113 - Disconnected successfully.
+2026-01-07 20:03:07.305 | INFO     | core.engine:shutdown:295 - Engine has been shut down.
+2026-01-07 20:03:07.315 | INFO     | __main__:main:28 - Shutting down the trading bot.
+2026-01-07 20:04:20.634 | INFO     | core.logging_setup:<module>:42 - Logger initialized successfully.
+2026-01-07 20:04:20.703 | INFO     | __main__:main:16 - Starting the trading bot application.
+2026-01-07 20:04:20.703 | INFO     | core.engine:__init__:38 - Initializing Trading Engine...
+2026-01-07 20:04:20.704 | INFO     | ib_client.client:__init__:27 - IBClient initialized.
+2026-01-07 20:04:20.705 | INFO     | ib_client.connector:__init__:41 - IBConnector initialized.
+2026-01-07 20:04:20.711 | INFO     | core.engine:__init__:63 - Engine initialized. Trading Mode: PAPER, Ticker: SPX
+2026-01-07 20:04:20.712 | INFO     | core.engine:run:77 - Starting engine event loop...
+2026-01-07 20:04:20.713 | INFO     | core.engine:_process_state:94 - --- Processing State: CONNECTING ---
+2026-01-07 20:04:20.714 | INFO     | ib_client.connector:connect:55 - Connecting to IB TWS/Gateway at 127.0.0.1:4002 with ClientID 1...
+2026-01-07 20:04:20.725 | INFO     | ib_client.connector:connect:64 - Connection thread started.
+2026-01-07 20:04:20.729 | INFO     | ib_client.connector:_wait_for_connection:78 - Waiting for connection to be established...
+2026-01-07 20:04:20.734 | INFO     | ib_client.wrapper:nextValidId:72 - Successfully connected to IB. Next valid Order ID: 1
+2026-01-07 20:04:20.735 | INFO     | ib_client.connector:_wait_for_connection:85 - Connection established successfully. Next Request ID seed: 1
+2026-01-07 20:04:20.736 | INFO     | ib_client.wrapper:error:53 - IB Info: ReqId: -1, Code: 2104, Msg: Market data farm connection is OK:usfarm
+2026-01-07 20:04:20.736 | INFO     | core.engine:_state_connect:117 - OrderManager initialized.
+2026-01-07 20:04:20.739 | INFO     | ib_client.wrapper:error:53 - IB Info: ReqId: -1, Code: 2106, Msg: HMDS data farm connection is OK:ushmds
+2026-01-07 20:04:20.744 | INFO     | ib_client.wrapper:error:53 - IB Info: ReqId: -1, Code: 2158, Msg: Sec-def data farm connection is OK:secdefil
+2026-01-07 20:04:21.738 | INFO     | core.engine:_process_state:94 - --- Processing State: GETTING_OPENING_RANGE ---
+2026-01-07 20:04:21.739 | ERROR    | core.engine:_state_get_opening_range:130 - Configuration error: `exchange_timezone` is missing or invalid in config.yaml under `instrument`. Please add it (e.g., 'America/New_York'). Shutting down.
+2026-01-07 20:04:22.740 | INFO     | core.engine:shutdown:283 - Shutting down trading engine...
+2026-01-07 20:04:22.741 | INFO     | ib_client.connector:disconnect:102 - Disconnecting from IB TWS/Gateway...
+2026-01-07 20:04:22.745 | WARNING  | ib_client.wrapper:connectionClosed:63 - Connection to IB TWS/Gateway lost.
+2026-01-07 20:04:22.746 | INFO     | ib_client.connector:disconnect:108 - Waiting for connection thread to terminate.
+2026-01-07 20:04:22.820 | INFO     | ib_client.connector:disconnect:113 - Disconnected successfully.
+2026-01-07 20:04:22.820 | INFO     | core.engine:shutdown:295 - Engine has been shut down.
+2026-01-07 20:04:22.821 | INFO     | __main__:main:28 - Shutting down the trading bot.
+2026-01-07 20:07:57.588 | INFO     | core.logging_setup:<module>:42 - Logger initialized successfully.
+2026-01-07 20:07:57.722 | INFO     | __main__:main:16 - Starting the trading bot application.
+2026-01-07 20:07:57.723 | INFO     | core.engine:__init__:38 - Initializing Trading Engine...
+2026-01-07 20:07:57.724 | INFO     | ib_client.client:__init__:27 - IBClient initialized.
+2026-01-07 20:07:57.725 | INFO     | ib_client.connector:__init__:41 - IBConnector initialized.
+2026-01-07 20:07:57.755 | INFO     | core.engine:__init__:63 - Engine initialized. Trading Mode: PAPER, Ticker: SPX
+2026-01-07 20:07:57.759 | INFO     | core.engine:run:77 - Starting engine event loop...
+2026-01-07 20:07:57.760 | INFO     | core.engine:_process_state:94 - --- Processing State: CONNECTING ---
+2026-01-07 20:07:57.768 | INFO     | ib_client.connector:connect:55 - Connecting to IB TWS/Gateway at 127.0.0.1:4002 with ClientID 1...
+2026-01-07 20:07:57.891 | INFO     | ib_client.connector:connect:64 - Connection thread started.
+2026-01-07 20:07:57.892 | INFO     | ib_client.connector:_wait_for_connection:78 - Waiting for connection to be established...
+2026-01-07 20:07:57.941 | INFO     | ib_client.wrapper:nextValidId:72 - Successfully connected to IB. Next valid Order ID: 1
+2026-01-07 20:07:57.943 | INFO     | ib_client.connector:_wait_for_connection:85 - Connection established successfully. Next Request ID seed: 1
+2026-01-07 20:07:57.944 | INFO     | core.engine:_state_connect:117 - OrderManager initialized.
+2026-01-07 20:07:57.945 | INFO     | ib_client.wrapper:error:53 - IB Info: ReqId: -1, Code: 2104, Msg: Market data farm connection is OK:usfarm
+2026-01-07 20:07:57.955 | INFO     | ib_client.wrapper:error:53 - IB Info: ReqId: -1, Code: 2106, Msg: HMDS data farm connection is OK:ushmds
+2026-01-07 20:07:57.969 | INFO     | ib_client.wrapper:error:53 - IB Info: ReqId: -1, Code: 2158, Msg: Sec-def data farm connection is OK:secdefil
+2026-01-07 20:07:58.946 | INFO     | core.engine:_process_state:94 - --- Processing State: GETTING_OPENING_RANGE ---
+2026-01-07 20:07:58.946 | ERROR    | core.engine:_state_get_opening_range:131 - Configuration error: `exchange_timezone` is missing or invalid in config.yaml under `instrument`. Please add it (e.g., 'America/New_York'). Shutting down.
+2026-01-07 20:07:59.948 | INFO     | core.engine:shutdown:284 - Shutting down trading engine...
+2026-01-07 20:07:59.949 | INFO     | ib_client.connector:disconnect:102 - Disconnecting from IB TWS/Gateway...
+2026-01-07 20:07:59.952 | WARNING  | ib_client.wrapper:connectionClosed:63 - Connection to IB TWS/Gateway lost.
+2026-01-07 20:07:59.953 | INFO     | ib_client.connector:disconnect:108 - Waiting for connection thread to terminate.
+2026-01-07 20:08:00.026 | INFO     | ib_client.connector:disconnect:113 - Disconnected successfully.
+2026-01-07 20:08:00.028 | INFO     | core.engine:shutdown:296 - Engine has been shut down.
+2026-01-07 20:08:00.030 | INFO     | __main__:main:28 - Shutting down the trading bot.
+2026-01-07 20:14:00.195 | INFO     | core.logging_setup:<module>:42 - Logger initialized successfully.
+2026-01-07 20:14:00.305 | INFO     | __main__:main:16 - Starting the trading bot application.
+2026-01-07 20:14:00.306 | INFO     | core.engine:__init__:38 - Initializing Trading Engine...
+2026-01-07 20:14:00.307 | INFO     | ib_client.client:__init__:27 - IBClient initialized.
+2026-01-07 20:14:00.307 | INFO     | ib_client.connector:__init__:41 - IBConnector initialized.
+2026-01-07 20:14:00.318 | INFO     | core.engine:__init__:63 - Engine initialized. Trading Mode: PAPER, Ticker: SPX
+2026-01-07 20:14:00.319 | INFO     | core.engine:run:77 - Starting engine event loop...
+2026-01-07 20:14:00.320 | INFO     | core.engine:_process_state:94 - --- Processing State: CONNECTING ---
+2026-01-07 20:14:00.321 | INFO     | ib_client.connector:connect:55 - Connecting to IB TWS/Gateway at 127.0.0.1:4002 with ClientID 1...
+2026-01-07 20:14:00.374 | INFO     | ib_client.connector:connect:64 - Connection thread started.
+2026-01-07 20:14:00.378 | INFO     | ib_client.connector:_wait_for_connection:78 - Waiting for connection to be established...
+2026-01-07 20:14:00.387 | INFO     | ib_client.wrapper:nextValidId:72 - Successfully connected to IB. Next valid Order ID: 1
+2026-01-07 20:14:00.388 | INFO     | ib_client.connector:_wait_for_connection:85 - Connection established successfully. Next Request ID seed: 1
+2026-01-07 20:14:00.389 | INFO     | core.engine:_state_connect:117 - OrderManager initialized.
+2026-01-07 20:14:00.389 | INFO     | ib_client.wrapper:error:53 - IB Info: ReqId: -1, Code: 2104, Msg: Market data farm connection is OK:usfarm
+2026-01-07 20:14:00.390 | INFO     | ib_client.wrapper:error:53 - IB Info: ReqId: -1, Code: 2107, Msg: HMDS data farm connection is inactive but should be available upon demand.ushmds
+2026-01-07 20:14:00.393 | INFO     | ib_client.wrapper:error:53 - IB Info: ReqId: -1, Code: 2158, Msg: Sec-def data farm connection is OK:secdefil
+2026-01-07 20:14:01.390 | INFO     | core.engine:_process_state:94 - --- Processing State: GETTING_OPENING_RANGE ---
+2026-01-07 20:14:01.390 | ERROR    | core.engine:_state_get_opening_range:131 - Configuration error: `exchange_timezone` is missing or invalid in config.yaml under `instrument`. Please add it (e.g., 'America/New_York'). Shutting down.
+2026-01-07 20:14:02.391 | INFO     | core.engine:shutdown:284 - Shutting down trading engine...
+2026-01-07 20:14:02.393 | INFO     | ib_client.connector:disconnect:102 - Disconnecting from IB TWS/Gateway...
+2026-01-07 20:14:02.397 | WARNING  | ib_client.wrapper:connectionClosed:63 - Connection to IB TWS/Gateway lost.
+2026-01-07 20:14:02.400 | INFO     | ib_client.connector:disconnect:108 - Waiting for connection thread to terminate.
+2026-01-07 20:14:02.463 | INFO     | ib_client.connector:disconnect:113 - Disconnected successfully.
+2026-01-07 20:14:02.464 | INFO     | core.engine:shutdown:296 - Engine has been shut down.
+2026-01-07 20:14:02.465 | INFO     | __main__:main:28 - Shutting down the trading bot.
+2026-01-07 20:16:07.183 | INFO     | core.logging_setup:<module>:42 - Logger initialized successfully.
+2026-01-07 20:16:07.272 | INFO     | __main__:main:16 - Starting the trading bot application.
+2026-01-07 20:16:07.273 | INFO     | core.engine:__init__:38 - Initializing Trading Engine...
+2026-01-07 20:16:07.275 | INFO     | ib_client.client:__init__:27 - IBClient initialized.
+2026-01-07 20:16:07.277 | INFO     | ib_client.connector:__init__:41 - IBConnector initialized.
+2026-01-07 20:16:07.287 | INFO     | core.engine:__init__:63 - Engine initialized. Trading Mode: PAPER, Ticker: SPX
+2026-01-07 20:16:07.287 | INFO     | core.engine:run:77 - Starting engine event loop...
+2026-01-07 20:16:07.288 | INFO     | core.engine:_process_state:94 - --- Processing State: CONNECTING ---
+2026-01-07 20:16:07.288 | INFO     | ib_client.connector:connect:55 - Connecting to IB TWS/Gateway at 127.0.0.1:4002 with ClientID 1...
+2026-01-07 20:16:07.342 | INFO     | ib_client.connector:connect:64 - Connection thread started.
+2026-01-07 20:16:07.353 | INFO     | ib_client.connector:_wait_for_connection:78 - Waiting for connection to be established...
+2026-01-07 20:16:07.382 | INFO     | ib_client.wrapper:nextValidId:72 - Successfully connected to IB. Next valid Order ID: 1
+2026-01-07 20:16:07.384 | INFO     | ib_client.connector:_wait_for_connection:85 - Connection established successfully. Next Request ID seed: 1
+2026-01-07 20:16:07.387 | INFO     | core.engine:_state_connect:117 - OrderManager initialized.
+2026-01-07 20:16:07.388 | INFO     | ib_client.wrapper:error:53 - IB Info: ReqId: -1, Code: 2104, Msg: Market data farm connection is OK:usfarm
+2026-01-07 20:16:07.401 | INFO     | ib_client.wrapper:error:53 - IB Info: ReqId: -1, Code: 2107, Msg: HMDS data farm connection is inactive but should be available upon demand.ushmds
+2026-01-07 20:16:07.412 | INFO     | ib_client.wrapper:error:53 - IB Info: ReqId: -1, Code: 2158, Msg: Sec-def data farm connection is OK:secdefil
+2026-01-07 20:16:08.395 | INFO     | core.engine:_process_state:94 - --- Processing State: GETTING_OPENING_RANGE ---
+2026-01-07 20:16:08.396 | ERROR    | core.engine:_state_get_opening_range:131 - Configuration error: `exchange_timezone` is missing or invalid in config.yaml under `instrument`. Please add it (e.g., 'America/New_York'). Shutting down.
+2026-01-07 20:16:09.397 | INFO     | core.engine:shutdown:284 - Shutting down trading engine...
+2026-01-07 20:16:09.398 | INFO     | ib_client.connector:disconnect:102 - Disconnecting from IB TWS/Gateway...
+2026-01-07 20:16:09.401 | WARNING  | ib_client.wrapper:connectionClosed:63 - Connection to IB TWS/Gateway lost.
+2026-01-07 20:16:09.402 | INFO     | ib_client.connector:disconnect:108 - Waiting for connection thread to terminate.
+2026-01-07 20:16:09.482 | INFO     | ib_client.connector:disconnect:113 - Disconnected successfully.
+2026-01-07 20:16:09.483 | INFO     | core.engine:shutdown:296 - Engine has been shut down.
+2026-01-07 20:16:09.484 | INFO     | __main__:main:28 - Shutting down the trading bot.
+2026-01-07 20:21:47.344 | INFO     | core.logging_setup:<module>:42 - Logger initialized successfully.
+2026-01-07 20:21:47.841 | INFO     | __main__:main:16 - Starting the trading bot application.
+2026-01-07 20:21:47.848 | INFO     | core.engine:__init__:38 - Initializing Trading Engine...
+2026-01-07 20:21:47.851 | INFO     | ib_client.client:__init__:27 - IBClient initialized.
+2026-01-07 20:21:47.852 | INFO     | ib_client.connector:__init__:41 - IBConnector initialized.
+2026-01-07 20:21:47.888 | INFO     | core.engine:__init__:63 - Engine initialized. Trading Mode: PAPER, Ticker: SPX
+2026-01-07 20:21:47.902 | INFO     | core.engine:run:77 - Starting engine event loop...
+2026-01-07 20:21:48.009 | INFO     | core.engine:_process_state:94 - --- Processing State: CONNECTING ---
+2026-01-07 20:21:48.165 | INFO     | ib_client.connector:connect:55 - Connecting to IB TWS/Gateway at 127.0.0.1:4002 with ClientID 1...
+2026-01-07 20:21:49.066 | INFO     | ib_client.connector:connect:64 - Connection thread started.
+2026-01-07 20:21:49.068 | INFO     | ib_client.connector:_wait_for_connection:78 - Waiting for connection to be established...
+2026-01-07 20:21:49.161 | INFO     | ib_client.wrapper:nextValidId:72 - Successfully connected to IB. Next valid Order ID: 1
+2026-01-07 20:21:49.163 | INFO     | ib_client.connector:_wait_for_connection:85 - Connection established successfully. Next Request ID seed: 1
+2026-01-07 20:21:49.166 | INFO     | core.engine:_state_connect:117 - OrderManager initialized.
+2026-01-07 20:21:49.170 | INFO     | ib_client.wrapper:error:53 - IB Info: ReqId: -1, Code: 2104, Msg: Market data farm connection is OK:usfarm
+2026-01-07 20:21:49.173 | INFO     | ib_client.wrapper:error:53 - IB Info: ReqId: -1, Code: 2107, Msg: HMDS data farm connection is inactive but should be available upon demand.ushmds
+2026-01-07 20:21:49.176 | INFO     | ib_client.wrapper:error:53 - IB Info: ReqId: -1, Code: 2158, Msg: Sec-def data farm connection is OK:secdefil
+2026-01-07 20:21:50.231 | INFO     | core.engine:_process_state:94 - --- Processing State: GETTING_OPENING_RANGE ---
+2026-01-07 20:21:50.320 | INFO     | core.engine:_state_get_opening_range:146 - Requesting historical data for opening range. End: 20260107 10:00:00, Duration: 1800 S
+2026-01-07 20:21:50.323 | INFO     | ib_client.connector:req_historical_data:186 - Requesting historical data. ReqId: 1, Symbol: SPX
+2026-01-07 20:21:54.936 | ERROR    | ib_client.wrapper:error:55 - IB Error: ReqId: 1, Code: 2174, Msg: Warning: You submitted request with date-time attributes without explicit time zone. Please switch to use yyyymmdd-hh:mm:ss in UTC or use instrument time zone, like US/Eastern. Implied time zone functionality will be removed in the next API release
+2026-01-07 20:22:10.396 | ERROR    | core.engine:_state_get_opening_range:183 - Timeout waiting for historical data. Check connection and contract details. Shutting down.
+2026-01-07 20:22:11.438 | INFO     | core.engine:shutdown:346 - Shutting down trading engine...
+2026-01-07 20:22:11.483 | INFO     | ib_client.connector:disconnect:102 - Disconnecting from IB TWS/Gateway...
+2026-01-07 20:22:11.521 | WARNING  | ib_client.wrapper:connectionClosed:63 - Connection to IB TWS/Gateway lost.
+2026-01-07 20:22:11.544 | INFO     | ib_client.connector:disconnect:108 - Waiting for connection thread to terminate.
+2026-01-07 20:22:11.692 | INFO     | ib_client.connector:disconnect:113 - Disconnected successfully.
+2026-01-07 20:22:11.735 | INFO     | core.engine:shutdown:358 - Engine has been shut down.
+2026-01-07 20:22:11.739 | INFO     | __main__:main:28 - Shutting down the trading bot.
+2026-01-08 10:26:26.352 | INFO     | core.logging_setup:<module>:42 - Logger initialized successfully.
+2026-01-08 10:26:26.440 | INFO     | __main__:main:16 - Starting the trading bot application.
+2026-01-08 10:26:26.441 | INFO     | core.engine:__init__:38 - Initializing Trading Engine...
+2026-01-08 10:26:26.442 | INFO     | ib_client.client:__init__:27 - IBClient initialized.
+2026-01-08 10:26:26.443 | INFO     | ib_client.connector:__init__:41 - IBConnector initialized.
+2026-01-08 10:26:26.450 | INFO     | core.engine:__init__:63 - Engine initialized. Trading Mode: PAPER, Ticker: SPX
+2026-01-08 10:26:26.451 | INFO     | core.engine:run:77 - Starting engine event loop...
+2026-01-08 10:26:26.451 | INFO     | core.engine:_process_state:94 - --- Processing State: CONNECTING ---
+2026-01-08 10:26:26.452 | INFO     | ib_client.connector:connect:55 - Connecting to IB TWS/Gateway at 127.0.0.1:4002 with ClientID 1...
+2026-01-08 10:26:29.493 | ERROR    | ib_client.wrapper:error:55 - IB Error: ReqId: -1, Code: 502, Msg: Couldn't connect to TWS. Confirm that "Enable ActiveX and Socket EClients" 
+is enabled and connection port is the same as "Socket Port" on the 
+TWS "Edit->Global Configuration...->API->Settings" menu. Live Trading ports: 
+TWS: 7496; IB Gateway: 4001. Simulated Trading ports for new installations 
+of version 954.1 or newer:  TWS: 7497; IB Gateway: 4002
+2026-01-08 10:26:29.496 | WARNING  | ib_client.wrapper:connectionClosed:63 - Connection to IB TWS/Gateway lost.
+2026-01-08 10:26:29.497 | INFO     | ib_client.connector:connect:64 - Connection thread started.
+2026-01-08 10:26:29.498 | INFO     | ib_client.connector:_wait_for_connection:78 - Waiting for connection to be established...
+2026-01-08 10:26:39.505 | ERROR    | ib_client.connector:_wait_for_connection:87 - Connection failed: Did not receive nextValidId in 10 seconds.
+2026-01-08 10:26:39.506 | INFO     | ib_client.connector:disconnect:99 - Already disconnected.
+2026-01-08 10:26:39.507 | ERROR    | ib_client.connector:connect:70 - Failed to connect to IB: IB connection timeout.
+Traceback (most recent call last):
+
+  File "C:\Users\ander\PythonProjects\Bot_ORB_Gamma\ib_client\connector.py", line 80, in _wait_for_connection
+    next_id = self.wrapper.next_valid_id_queue.get(timeout=timeout)
+              │    │       │                   │           └ 10
+              │    │       │                   └ <function Queue.get at 0x00000131A435D1C0>
+              │    │       └ <queue.Queue object at 0x00000131A6C429E0>
+              │    └ <ib_client.wrapper.IBWrapper object at 0x00000131A7480EC0>
+              └ <ib_client.connector.IBConnector object at 0x00000131A7480D70>
+
+  File "C:\Users\ander\AppData\Local\Programs\Python\Python313\Lib\queue.py", line 209, in get
+    raise Empty
+          └ <class '_queue.Empty'>
+
+_queue.Empty
+
+
+During handling of the above exception, another exception occurred:
+
+
+Traceback (most recent call last):
+
+  File "C:\Users\ander\PythonProjects\Bot_ORB_Gamma\main.py", line 32, in <module>
+    main()
+    └ <function main at 0x00000131A3EF1440>
+
+  File "C:\Users\ander\PythonProjects\Bot_ORB_Gamma\main.py", line 20, in main
+    engine.run()
+    │      └ <function Engine.run at 0x00000131A74E0400>
+    └ <core.engine.Engine object at 0x00000131A7480C20>
+
+  File "C:\Users\ander\PythonProjects\Bot_ORB_Gamma\core\engine.py", line 82, in run
+    self._process_state()
+    │    └ <function Engine._process_state at 0x00000131A74E04A0>
+    └ <core.engine.Engine object at 0x00000131A7480C20>
+
+  File "C:\Users\ander\PythonProjects\Bot_ORB_Gamma\core\engine.py", line 97, in _process_state
+    self._state_connect()
+    │    └ <function Engine._state_connect at 0x00000131A74E0540>
+    └ <core.engine.Engine object at 0x00000131A7480C20>
+
+  File "C:\Users\ander\PythonProjects\Bot_ORB_Gamma\core\engine.py", line 115, in _state_connect
+    self.ib_connector.connect()
+    │    │            └ <function IBConnector.connect at 0x00000131A74C5EE0>
+    │    └ <ib_client.connector.IBConnector object at 0x00000131A7480D70>
+    └ <core.engine.Engine object at 0x00000131A7480C20>
+
+> File "C:\Users\ander\PythonProjects\Bot_ORB_Gamma\ib_client\connector.py", line 67, in connect
+    self._wait_for_connection()
+    │    └ <function IBConnector._wait_for_connection at 0x00000131A74C5F80>
+    └ <ib_client.connector.IBConnector object at 0x00000131A7480D70>
+
+  File "C:\Users\ander\PythonProjects\Bot_ORB_Gamma\ib_client\connector.py", line 89, in _wait_for_connection
+    raise ConnectionError("IB connection timeout.")
+
+ConnectionError: IB connection timeout.
+2026-01-08 10:26:39.601 | INFO     | ib_client.connector:disconnect:99 - Already disconnected.
+2026-01-08 10:26:39.601 | ERROR    | core.engine:_state_connect:120 - Connection failed: IB connection timeout.. Retrying in 10 seconds...
+2026-01-08 10:26:50.604 | INFO     | core.engine:_process_state:94 - --- Processing State: CONNECTING ---
+2026-01-08 10:26:50.605 | INFO     | ib_client.connector:connect:55 - Connecting to IB TWS/Gateway at 127.0.0.1:4002 with ClientID 1...
+2026-01-08 10:26:53.637 | ERROR    | ib_client.wrapper:error:55 - IB Error: ReqId: -1, Code: 502, Msg: Couldn't connect to TWS. Confirm that "Enable ActiveX and Socket EClients" 
+is enabled and connection port is the same as "Socket Port" on the 
+TWS "Edit->Global Configuration...->API->Settings" menu. Live Trading ports: 
+TWS: 7496; IB Gateway: 4001. Simulated Trading ports for new installations 
+of version 954.1 or newer:  TWS: 7497; IB Gateway: 4002
+2026-01-08 10:26:53.639 | WARNING  | ib_client.wrapper:connectionClosed:63 - Connection to IB TWS/Gateway lost.
+2026-01-08 10:26:53.640 | INFO     | ib_client.connector:connect:64 - Connection thread started.
+2026-01-08 10:26:53.640 | INFO     | ib_client.connector:_wait_for_connection:78 - Waiting for connection to be established...
+2026-01-08 10:27:03.644 | ERROR    | ib_client.connector:_wait_for_connection:87 - Connection failed: Did not receive nextValidId in 10 seconds.
+2026-01-08 10:27:03.645 | INFO     | ib_client.connector:disconnect:99 - Already disconnected.
+2026-01-08 10:27:03.645 | ERROR    | ib_client.connector:connect:70 - Failed to connect to IB: IB connection timeout.
+Traceback (most recent call last):
+
+  File "C:\Users\ander\PythonProjects\Bot_ORB_Gamma\ib_client\connector.py", line 80, in _wait_for_connection
+    next_id = self.wrapper.next_valid_id_queue.get(timeout=timeout)
+              │    │       │                   │           └ 10
+              │    │       │                   └ <function Queue.get at 0x00000131A435D1C0>
+              │    │       └ <queue.Queue object at 0x00000131A6C429E0>
+              │    └ <ib_client.wrapper.IBWrapper object at 0x00000131A7480EC0>
+              └ <ib_client.connector.IBConnector object at 0x00000131A7480D70>
+
+  File "C:\Users\ander\AppData\Local\Programs\Python\Python313\Lib\queue.py", line 209, in get
+    raise Empty
+          └ <class '_queue.Empty'>
+
+_queue.Empty
+
+
+During handling of the above exception, another exception occurred:
+
+
+Traceback (most recent call last):
+
+  File "C:\Users\ander\PythonProjects\Bot_ORB_Gamma\main.py", line 32, in <module>
+    main()
+    └ <function main at 0x00000131A3EF1440>
+
+  File "C:\Users\ander\PythonProjects\Bot_ORB_Gamma\main.py", line 20, in main
+    engine.run()
+    │      └ <function Engine.run at 0x00000131A74E0400>
+    └ <core.engine.Engine object at 0x00000131A7480C20>
+
+  File "C:\Users\ander\PythonProjects\Bot_ORB_Gamma\core\engine.py", line 82, in run
+    self._process_state()
+    │    └ <function Engine._process_state at 0x00000131A74E04A0>
+    └ <core.engine.Engine object at 0x00000131A7480C20>
+
+  File "C:\Users\ander\PythonProjects\Bot_ORB_Gamma\core\engine.py", line 97, in _process_state
+    self._state_connect()
+    │    └ <function Engine._state_connect at 0x00000131A74E0540>
+    └ <core.engine.Engine object at 0x00000131A7480C20>
+
+  File "C:\Users\ander\PythonProjects\Bot_ORB_Gamma\core\engine.py", line 115, in _state_connect
+    self.ib_connector.connect()
+    │    │            └ <function IBConnector.connect at 0x00000131A74C5EE0>
+    │    └ <ib_client.connector.IBConnector object at 0x00000131A7480D70>
+    └ <core.engine.Engine object at 0x00000131A7480C20>
+
+> File "C:\Users\ander\PythonProjects\Bot_ORB_Gamma\ib_client\connector.py", line 67, in connect
+    self._wait_for_connection()
+    │    └ <function IBConnector._wait_for_connection at 0x00000131A74C5F80>
+    └ <ib_client.connector.IBConnector object at 0x00000131A7480D70>
+
+  File "C:\Users\ander\PythonProjects\Bot_ORB_Gamma\ib_client\connector.py", line 89, in _wait_for_connection
+    raise ConnectionError("IB connection timeout.")
+
+ConnectionError: IB connection timeout.
+2026-01-08 10:27:03.649 | INFO     | ib_client.connector:disconnect:99 - Already disconnected.
+2026-01-08 10:27:03.650 | ERROR    | core.engine:_state_connect:120 - Connection failed: IB connection timeout.. Retrying in 10 seconds...
+2026-01-08 10:27:14.651 | INFO     | core.engine:_process_state:94 - --- Processing State: CONNECTING ---
+2026-01-08 10:27:14.652 | INFO     | ib_client.connector:connect:55 - Connecting to IB TWS/Gateway at 127.0.0.1:4002 with ClientID 1...
+2026-01-08 10:27:17.694 | ERROR    | ib_client.wrapper:error:55 - IB Error: ReqId: -1, Code: 502, Msg: Couldn't connect to TWS. Confirm that "Enable ActiveX and Socket EClients" 
+is enabled and connection port is the same as "Socket Port" on the 
+TWS "Edit->Global Configuration...->API->Settings" menu. Live Trading ports: 
+TWS: 7496; IB Gateway: 4001. Simulated Trading ports for new installations 
+of version 954.1 or newer:  TWS: 7497; IB Gateway: 4002
+2026-01-08 10:27:17.696 | WARNING  | ib_client.wrapper:connectionClosed:63 - Connection to IB TWS/Gateway lost.
+2026-01-08 10:27:17.697 | INFO     | ib_client.connector:connect:64 - Connection thread started.
+2026-01-08 10:27:17.697 | INFO     | ib_client.connector:_wait_for_connection:78 - Waiting for connection to be established...
+2026-01-08 10:27:27.702 | ERROR    | ib_client.connector:_wait_for_connection:87 - Connection failed: Did not receive nextValidId in 10 seconds.
+2026-01-08 10:27:27.704 | INFO     | ib_client.connector:disconnect:99 - Already disconnected.
+2026-01-08 10:27:27.706 | ERROR    | ib_client.connector:connect:70 - Failed to connect to IB: IB connection timeout.
+Traceback (most recent call last):
+
+  File "C:\Users\ander\PythonProjects\Bot_ORB_Gamma\ib_client\connector.py", line 80, in _wait_for_connection
+    next_id = self.wrapper.next_valid_id_queue.get(timeout=timeout)
+              │    │       │                   │           └ 10
+              │    │       │                   └ <function Queue.get at 0x00000131A435D1C0>
+              │    │       └ <queue.Queue object at 0x00000131A6C429E0>
+              │    └ <ib_client.wrapper.IBWrapper object at 0x00000131A7480EC0>
+              └ <ib_client.connector.IBConnector object at 0x00000131A7480D70>
+
+  File "C:\Users\ander\AppData\Local\Programs\Python\Python313\Lib\queue.py", line 209, in get
+    raise Empty
+          └ <class '_queue.Empty'>
+
+_queue.Empty
+
+
+During handling of the above exception, another exception occurred:
+
+
+Traceback (most recent call last):
+
+  File "C:\Users\ander\PythonProjects\Bot_ORB_Gamma\main.py", line 32, in <module>
+    main()
+    └ <function main at 0x00000131A3EF1440>
+
+  File "C:\Users\ander\PythonProjects\Bot_ORB_Gamma\main.py", line 20, in main
+    engine.run()
+    │      └ <function Engine.run at 0x00000131A74E0400>
+    └ <core.engine.Engine object at 0x00000131A7480C20>
+
+  File "C:\Users\ander\PythonProjects\Bot_ORB_Gamma\core\engine.py", line 82, in run
+    self._process_state()
+    │    └ <function Engine._process_state at 0x00000131A74E04A0>
+    └ <core.engine.Engine object at 0x00000131A7480C20>
+
+  File "C:\Users\ander\PythonProjects\Bot_ORB_Gamma\core\engine.py", line 97, in _process_state
+    self._state_connect()
+    │    └ <function Engine._state_connect at 0x00000131A74E0540>
+    └ <core.engine.Engine object at 0x00000131A7480C20>
+
+  File "C:\Users\ander\PythonProjects\Bot_ORB_Gamma\core\engine.py", line 115, in _state_connect
+    self.ib_connector.connect()
+    │    │            └ <function IBConnector.connect at 0x00000131A74C5EE0>
+    │    └ <ib_client.connector.IBConnector object at 0x00000131A7480D70>
+    └ <core.engine.Engine object at 0x00000131A7480C20>
+
+> File "C:\Users\ander\PythonProjects\Bot_ORB_Gamma\ib_client\connector.py", line 67, in connect
+    self._wait_for_connection()
+    │    └ <function IBConnector._wait_for_connection at 0x00000131A74C5F80>
+    └ <ib_client.connector.IBConnector object at 0x00000131A7480D70>
+
+  File "C:\Users\ander\PythonProjects\Bot_ORB_Gamma\ib_client\connector.py", line 89, in _wait_for_connection
+    raise ConnectionError("IB connection timeout.")
+
+ConnectionError: IB connection timeout.
+2026-01-08 10:27:27.713 | INFO     | ib_client.connector:disconnect:99 - Already disconnected.
+2026-01-08 10:27:27.715 | ERROR    | core.engine:_state_connect:120 - Connection failed: IB connection timeout.. Retrying in 10 seconds...
+2026-01-08 10:27:38.722 | INFO     | core.engine:_process_state:94 - --- Processing State: CONNECTING ---
+2026-01-08 10:27:38.722 | INFO     | ib_client.connector:connect:55 - Connecting to IB TWS/Gateway at 127.0.0.1:4002 with ClientID 1...
+2026-01-08 10:27:38.803 | INFO     | ib_client.connector:connect:64 - Connection thread started.
+2026-01-08 10:27:38.804 | INFO     | ib_client.connector:_wait_for_connection:78 - Waiting for connection to be established...
+2026-01-08 10:27:38.846 | INFO     | ib_client.wrapper:nextValidId:72 - Successfully connected to IB. Next valid Order ID: 1
+2026-01-08 10:27:38.847 | INFO     | ib_client.connector:_wait_for_connection:85 - Connection established successfully. Next Request ID seed: 1
+2026-01-08 10:27:38.848 | INFO     | core.engine:_state_connect:117 - OrderManager initialized.
+2026-01-08 10:27:38.866 | INFO     | ib_client.wrapper:error:53 - IB Info: ReqId: -1, Code: 2104, Msg: Market data farm connection is OK:usfarm
+2026-01-08 10:27:38.868 | INFO     | ib_client.wrapper:error:53 - IB Info: ReqId: -1, Code: 2106, Msg: HMDS data farm connection is OK:ushmds
+2026-01-08 10:27:38.870 | INFO     | ib_client.wrapper:error:53 - IB Info: ReqId: -1, Code: 2158, Msg: Sec-def data farm connection is OK:secdefil
+2026-01-08 10:27:39.849 | INFO     | core.engine:_process_state:94 - --- Processing State: GETTING_OPENING_RANGE ---
+2026-01-08 10:27:39.850 | INFO     | core.engine:_state_get_opening_range:146 - Requesting historical data for opening range. End: 20260108 10:00:00, Duration: 1800 S
+2026-01-08 10:27:39.851 | INFO     | ib_client.connector:req_historical_data:186 - Requesting historical data. ReqId: 1, Symbol: SPX
+2026-01-08 10:27:39.913 | ERROR    | ib_client.wrapper:error:55 - IB Error: ReqId: 1, Code: 2174, Msg: Warning: You submitted request with date-time attributes without explicit time zone. Please switch to use yyyymmdd-hh:mm:ss in UTC or use instrument time zone, like US/Eastern. Implied time zone functionality will be removed in the next API release
+2026-01-08 10:27:42.594 | INFO     | core.engine:_state_get_opening_range:160 - End of historical data stream received.
+2026-01-08 10:27:43.596 | INFO     | core.engine:_process_state:94 - --- Processing State: MONITORING_BREAKOUT ---
+2026-01-08 10:27:43.597 | INFO     | core.engine:_state_monitor_for_breakout:272 - Requesting 5-second real-time bars to monitor for breakout. (ReqId: 2)
+2026-01-08 10:27:43.598 | INFO     | ib_client.connector:req_real_time_bars:193 - Requesting real-time bars. ReqId: 2, Symbol: SPX
+2026-01-08 10:27:43.744 | ERROR    | ib_client.wrapper:error:55 - IB Error: ReqId: 2, Code: 420, Msg: Invalid Real-time Query:No market data permissions for CBOE IND
+2026-01-08 10:28:43.613 | WARNING  | core.engine:run:86 - Keyboard interrupt detected. Shutting down.
+2026-01-08 10:28:43.614 | INFO     | core.engine:shutdown:346 - Shutting down trading engine...
+2026-01-08 10:28:43.615 | INFO     | core.engine:shutdown:350 - Cancelling active real-time bar subscription: 2
+2026-01-08 10:28:43.616 | INFO     | ib_client.connector:cancel_real_time_bars:200 - Cancelling real-time bars. ReqId: 2
+2026-01-08 10:28:43.617 | INFO     | ib_client.connector:disconnect:102 - Disconnecting from IB TWS/Gateway...
+2026-01-08 10:28:43.620 | WARNING  | ib_client.wrapper:connectionClosed:63 - Connection to IB TWS/Gateway lost.
+2026-01-08 10:28:43.621 | INFO     | ib_client.connector:disconnect:108 - Waiting for connection thread to terminate.
+2026-01-08 10:28:43.643 | INFO     | ib_client.connector:disconnect:113 - Disconnected successfully.
+2026-01-08 10:28:43.643 | INFO     | core.engine:shutdown:358 - Engine has been shut down.
+2026-01-08 10:28:43.644 | INFO     | __main__:main:28 - Shutting down the trading bot.

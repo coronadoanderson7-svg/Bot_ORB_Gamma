@@ -41,7 +41,7 @@ The Python `ibapi` library does **not** connect directly to IBKR's servers. It c
 
 You must enable API access within TWS or IB Gateway after installing it:
 
-1.  Open either TWS or IB Gateway.
+1.  Open either     .
 2.  In the application's configuration settings, find the **API** section (In TWS: **File > Global Configuration > API > Settings**).
 3.  Check the box to **"Enable ActiveX and Socket Clients"**.
 4.  Note the **"Socket port"** number displayed. This port number must exactly match the `port` value in your `config.yaml` file.

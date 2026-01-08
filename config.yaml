@@ -5,7 +5,7 @@
 # ==============================================================================
 connection:
   host: 127.0.0.1
-  port: 7497          # Default for TWS: 7497, Default for IB Gateway: 4002
+  port: 4002          # Default for TWS: 7497, Default for IB Gateway: 4002
   client_id: 1
 
 # ==============================================================================
@@ -22,7 +22,7 @@ instrument:
   ticker: "SPX"  # Ticker symbol (e.g., SPX, AAPL)
   exchange: "CBOE" # Primary exchange for the instrument
   currency: "USD"
-  exchange_timezone: "America/Chicago" # Timezone of the exchange (e.g., "America/New_York", "America/Chicago")
+  exchange_timezone: "America/New_York" # Timezone of the exchange (e.g., "America/New_York", "America/Chicago")
 
 # ==============================================================================
 # Stage 1: Opening Range
