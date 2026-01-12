@@ -38,6 +38,8 @@ class OpeningRangeConfig(BaseModel):
     market_open_time: str
     duration_minutes: int = Field(..., gt=0)
     bar_size: str
+    wait_buffer_seconds: int = Field(..., ge=0)
+    historical_data_timeout_seconds: int = Field(..., gt=0)
 
 class BreakoutConfig(BaseModel):
     """Schema for Breakout Detection stage."""

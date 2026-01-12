@@ -507,3 +507,185 @@ ConnectionError: IB connection timeout.
 2026-01-08 10:28:43.643 | INFO     | ib_client.connector:disconnect:113 - Disconnected successfully.
 2026-01-08 10:28:43.643 | INFO     | core.engine:shutdown:358 - Engine has been shut down.
 2026-01-08 10:28:43.644 | INFO     | __main__:main:28 - Shutting down the trading bot.
+2026-01-08 11:14:43.661 | INFO     | core.logging_setup:<module>:42 - Logger initialized successfully.
+2026-01-08 11:14:43.869 | INFO     | __main__:main:16 - Starting the trading bot application.
+2026-01-08 11:14:43.869 | INFO     | core.engine:__init__:38 - Initializing Trading Engine...
+2026-01-08 11:14:43.870 | INFO     | ib_client.client:__init__:27 - IBClient initialized.
+2026-01-08 11:14:43.871 | INFO     | ib_client.connector:__init__:41 - IBConnector initialized.
+2026-01-08 11:14:43.878 | INFO     | core.engine:__init__:63 - Engine initialized. Trading Mode: PAPER, Ticker: SPX
+2026-01-08 11:14:43.879 | INFO     | core.engine:run:77 - Starting engine event loop...
+2026-01-08 11:14:43.880 | INFO     | core.engine:_process_state:94 - --- Processing State: CONNECTING ---
+2026-01-08 11:14:43.880 | INFO     | ib_client.connector:connect:55 - Connecting to IB TWS/Gateway at 127.0.0.1:4002 with ClientID 1...
+2026-01-08 11:14:44.020 | INFO     | ib_client.connector:connect:64 - Connection thread started.
+2026-01-08 11:14:44.070 | INFO     | ib_client.connector:_wait_for_connection:78 - Waiting for connection to be established...
+2026-01-08 11:14:44.297 | INFO     | ib_client.wrapper:nextValidId:72 - Successfully connected to IB. Next valid Order ID: 1
+2026-01-08 11:14:44.298 | INFO     | ib_client.connector:_wait_for_connection:85 - Connection established successfully. Next Request ID seed: 1
+2026-01-08 11:14:44.299 | INFO     | core.engine:_state_connect:117 - OrderManager initialized.
+2026-01-08 11:14:44.302 | INFO     | ib_client.wrapper:error:53 - IB Info: ReqId: -1, Code: 2104, Msg: Market data farm connection is OK:usfarm
+2026-01-08 11:14:44.304 | INFO     | ib_client.wrapper:error:53 - IB Info: ReqId: -1, Code: 2106, Msg: HMDS data farm connection is OK:ushmds
+2026-01-08 11:14:44.306 | INFO     | ib_client.wrapper:error:53 - IB Info: ReqId: -1, Code: 2158, Msg: Sec-def data farm connection is OK:secdefil
+2026-01-08 11:14:45.299 | INFO     | core.engine:_process_state:94 - --- Processing State: GETTING_OPENING_RANGE ---
+2026-01-08 11:14:45.300 | INFO     | core.engine:_state_get_opening_range:127 - America/New_York ***********************
+2026-01-08 11:14:50.981 | INFO     | core.engine:_state_get_opening_range:162 - Requesting historical data for opening range. End: 20260108 10:00:00 (America/New_York), Duration: 1800 S
+2026-01-08 11:14:50.982 | INFO     | ib_client.connector:req_historical_data:186 - Requesting historical data. ReqId: 1, Symbol: SPX
+2026-01-08 11:14:51.007 | ERROR    | ib_client.wrapper:error:55 - IB Error: ReqId: 1, Code: 2174, Msg: Warning: You submitted request with date-time attributes without explicit time zone. Please switch to use yyyymmdd-hh:mm:ss in UTC or use instrument time zone, like US/Eastern. Implied time zone functionality will be removed in the next API release
+2026-01-08 11:14:50.984 | ERROR    | core.engine:run:88 - An unhandled exception occurred in the engine: 'OpeningRangeConfig' object has no attribute 'historical_data_timeout_seconds'
+Traceback (most recent call last):
+
+  File "C:\Users\ander\PythonProjects\Bot_ORB_Gamma\main.py", line 32, in <module>
+    main()
+    └ <function main at 0x000001AA2B911440>
+
+  File "C:\Users\ander\PythonProjects\Bot_ORB_Gamma\main.py", line 20, in main
+    engine.run()
+    │      └ <function Engine.run at 0x000001AA2EEFC680>
+    └ <core.engine.Engine object at 0x000001AA2EE9CD70>
+
+> File "C:\Users\ander\PythonProjects\Bot_ORB_Gamma\core\engine.py", line 82, in run
+    self._process_state()
+    │    └ <function Engine._process_state at 0x000001AA2EEFC720>
+    └ <core.engine.Engine object at 0x000001AA2EE9CD70>
+
+  File "C:\Users\ander\PythonProjects\Bot_ORB_Gamma\core\engine.py", line 99, in _process_state
+    self._state_get_opening_range()
+    │    └ <function Engine._state_get_opening_range at 0x000001AA2EEFC860>
+    └ <core.engine.Engine object at 0x000001AA2EE9CD70>
+
+  File "C:\Users\ander\PythonProjects\Bot_ORB_Gamma\core\engine.py", line 177, in _state_get_opening_range
+    timeout=self.config.opening_range.historical_data_timeout_seconds
+            │    │      └ OpeningRangeConfig(market_open_time='09:30:00', duration_minutes=30, bar_size='1 min')
+            │    └ AppConfig(connection=ConnectionConfig(host='127.0.0.1', port=4002, client_id=1), account=AccountConfig(type='paper', code='')...
+            └ <core.engine.Engine object at 0x000001AA2EE9CD70>
+
+  File "C:\Users\ander\PythonProjects\alpaca_bot_v1\.venv\Lib\site-packages\pydantic\main.py", line 1026, in __getattr__
+    raise AttributeError(f'{type(self).__name__!r} object has no attribute {item!r}')
+                                 │                                          └ 'historical_data_timeout_seconds'
+                                 └ OpeningRangeConfig(market_open_time='09:30:00', duration_minutes=30, bar_size='1 min')
+
+AttributeError: 'OpeningRangeConfig' object has no attribute 'historical_data_timeout_seconds'
+2026-01-08 11:14:51.120 | INFO     | core.engine:shutdown:284 - Shutting down trading engine...
+2026-01-08 11:14:51.121 | INFO     | ib_client.connector:disconnect:102 - Disconnecting from IB TWS/Gateway...
+2026-01-08 11:14:51.125 | WARNING  | ib_client.wrapper:connectionClosed:63 - Connection to IB TWS/Gateway lost.
+2026-01-08 11:14:51.125 | INFO     | ib_client.connector:disconnect:108 - Waiting for connection thread to terminate.
+2026-01-08 11:14:51.222 | INFO     | ib_client.connector:disconnect:113 - Disconnected successfully.
+2026-01-08 11:14:51.224 | INFO     | core.engine:shutdown:296 - Engine has been shut down.
+2026-01-08 11:14:51.225 | INFO     | __main__:main:28 - Shutting down the trading bot.
+2026-01-08 11:16:28.919 | INFO     | core.logging_setup:<module>:42 - Logger initialized successfully.
+2026-01-08 11:16:28.986 | INFO     | __main__:main:16 - Starting the trading bot application.
+2026-01-08 11:16:28.987 | INFO     | core.engine:__init__:38 - Initializing Trading Engine...
+2026-01-08 11:16:28.987 | INFO     | ib_client.client:__init__:27 - IBClient initialized.
+2026-01-08 11:16:28.987 | INFO     | ib_client.connector:__init__:41 - IBConnector initialized.
+2026-01-08 11:16:28.993 | INFO     | core.engine:__init__:63 - Engine initialized. Trading Mode: PAPER, Ticker: SPX
+2026-01-08 11:16:28.994 | INFO     | core.engine:run:77 - Starting engine event loop...
+2026-01-08 11:16:28.994 | INFO     | core.engine:_process_state:94 - --- Processing State: CONNECTING ---
+2026-01-08 11:16:28.994 | INFO     | ib_client.connector:connect:55 - Connecting to IB TWS/Gateway at 127.0.0.1:4002 with ClientID 1...
+2026-01-08 11:16:29.005 | INFO     | ib_client.connector:connect:64 - Connection thread started.
+2026-01-08 11:16:29.006 | INFO     | ib_client.connector:_wait_for_connection:78 - Waiting for connection to be established...
+2026-01-08 11:16:29.014 | INFO     | ib_client.wrapper:nextValidId:72 - Successfully connected to IB. Next valid Order ID: 1
+2026-01-08 11:16:29.015 | INFO     | ib_client.connector:_wait_for_connection:85 - Connection established successfully. Next Request ID seed: 1
+2026-01-08 11:16:29.016 | INFO     | ib_client.wrapper:error:53 - IB Info: ReqId: -1, Code: 2104, Msg: Market data farm connection is OK:usfarm
+2026-01-08 11:16:29.016 | INFO     | core.engine:_state_connect:117 - OrderManager initialized.
+2026-01-08 11:16:29.017 | INFO     | ib_client.wrapper:error:53 - IB Info: ReqId: -1, Code: 2106, Msg: HMDS data farm connection is OK:ushmds
+2026-01-08 11:16:29.019 | INFO     | ib_client.wrapper:error:53 - IB Info: ReqId: -1, Code: 2158, Msg: Sec-def data farm connection is OK:secdefil
+2026-01-08 11:16:30.017 | INFO     | core.engine:_process_state:94 - --- Processing State: GETTING_OPENING_RANGE ---
+2026-01-08 11:16:30.018 | INFO     | core.engine:_state_get_opening_range:127 - America/New_York ***********************
+2026-01-08 11:16:30.157 | INFO     | core.engine:_state_get_opening_range:162 - Requesting historical data for opening range. End: 20260108 10:00:00 (America/New_York), Duration: 1800 S
+2026-01-08 11:16:30.158 | INFO     | ib_client.connector:req_historical_data:186 - Requesting historical data. ReqId: 1, Symbol: SPX
+2026-01-08 11:16:30.162 | ERROR    | ib_client.wrapper:error:55 - IB Error: ReqId: 1, Code: 2174, Msg: Warning: You submitted request with date-time attributes without explicit time zone. Please switch to use yyyymmdd-hh:mm:ss in UTC or use instrument time zone, like US/Eastern. Implied time zone functionality will be removed in the next API release
+2026-01-08 11:16:30.160 | ERROR    | core.engine:run:88 - An unhandled exception occurred in the engine: 'OpeningRangeConfig' object has no attribute 'historical_data_timeout_seconds'
+Traceback (most recent call last):
+
+  File "C:\Users\ander\PythonProjects\Bot_ORB_Gamma\main.py", line 32, in <module>
+    main()
+    └ <function main at 0x00000246AD1D1440>
+
+  File "C:\Users\ander\PythonProjects\Bot_ORB_Gamma\main.py", line 20, in main
+    engine.run()
+    │      └ <function Engine.run at 0x00000246B0774400>
+    └ <core.engine.Engine object at 0x00000246B0710C20>
+
+> File "C:\Users\ander\PythonProjects\Bot_ORB_Gamma\core\engine.py", line 82, in run
+    self._process_state()
+    │    └ <function Engine._process_state at 0x00000246B07744A0>
+    └ <core.engine.Engine object at 0x00000246B0710C20>
+
+  File "C:\Users\ander\PythonProjects\Bot_ORB_Gamma\core\engine.py", line 99, in _process_state
+    self._state_get_opening_range()
+    │    └ <function Engine._state_get_opening_range at 0x00000246B07745E0>
+    └ <core.engine.Engine object at 0x00000246B0710C20>
+
+  File "C:\Users\ander\PythonProjects\Bot_ORB_Gamma\core\engine.py", line 177, in _state_get_opening_range
+    timeout=self.config.opening_range.historical_data_timeout_seconds
+            │    │      └ OpeningRangeConfig(market_open_time='09:30:00', duration_minutes=30, bar_size='1 min')
+            │    └ AppConfig(connection=ConnectionConfig(host='127.0.0.1', port=4002, client_id=1), account=AccountConfig(type='paper', code='')...
+            └ <core.engine.Engine object at 0x00000246B0710C20>
+
+  File "C:\Users\ander\PythonProjects\alpaca_bot_v1\.venv\Lib\site-packages\pydantic\main.py", line 1026, in __getattr__
+    raise AttributeError(f'{type(self).__name__!r} object has no attribute {item!r}')
+                                 │                                          └ 'historical_data_timeout_seconds'
+                                 └ OpeningRangeConfig(market_open_time='09:30:00', duration_minutes=30, bar_size='1 min')
+
+AttributeError: 'OpeningRangeConfig' object has no attribute 'historical_data_timeout_seconds'
+2026-01-08 11:16:30.170 | INFO     | core.engine:shutdown:284 - Shutting down trading engine...
+2026-01-08 11:16:30.171 | INFO     | ib_client.connector:disconnect:102 - Disconnecting from IB TWS/Gateway...
+2026-01-08 11:16:30.172 | WARNING  | ib_client.wrapper:connectionClosed:63 - Connection to IB TWS/Gateway lost.
+2026-01-08 11:16:30.173 | INFO     | ib_client.connector:disconnect:108 - Waiting for connection thread to terminate.
+2026-01-08 11:16:30.379 | INFO     | ib_client.connector:disconnect:113 - Disconnected successfully.
+2026-01-08 11:16:30.403 | INFO     | core.engine:shutdown:296 - Engine has been shut down.
+2026-01-08 11:16:30.405 | INFO     | __main__:main:28 - Shutting down the trading bot.
+2026-01-08 11:33:52.939 | INFO     | core.logging_setup:<module>:42 - Logger initialized successfully.
+2026-01-08 11:33:53.088 | INFO     | __main__:main:16 - Starting the trading bot application.
+2026-01-08 11:33:53.089 | INFO     | core.engine:__init__:38 - Initializing Trading Engine...
+2026-01-08 11:33:53.091 | INFO     | ib_client.client:__init__:27 - IBClient initialized.
+2026-01-08 11:33:53.091 | INFO     | ib_client.connector:__init__:41 - IBConnector initialized.
+2026-01-08 11:33:53.106 | INFO     | core.engine:__init__:63 - Engine initialized. Trading Mode: PAPER, Ticker: SPX
+2026-01-08 11:33:53.107 | INFO     | core.engine:run:77 - Starting engine event loop...
+2026-01-08 11:33:53.110 | INFO     | core.engine:_process_state:94 - --- Processing State: CONNECTING ---
+2026-01-08 11:33:53.111 | INFO     | ib_client.connector:connect:55 - Connecting to IB TWS/Gateway at 127.0.0.1:4002 with ClientID 1...
+2026-01-08 11:33:53.255 | INFO     | ib_client.connector:connect:64 - Connection thread started.
+2026-01-08 11:33:53.255 | INFO     | ib_client.connector:_wait_for_connection:78 - Waiting for connection to be established...
+2026-01-08 11:33:53.317 | INFO     | ib_client.wrapper:nextValidId:72 - Successfully connected to IB. Next valid Order ID: 1
+2026-01-08 11:33:53.318 | INFO     | ib_client.connector:_wait_for_connection:85 - Connection established successfully. Next Request ID seed: 1
+2026-01-08 11:33:53.319 | INFO     | core.engine:_state_connect:117 - OrderManager initialized.
+2026-01-08 11:33:53.328 | INFO     | ib_client.wrapper:error:53 - IB Info: ReqId: -1, Code: 2104, Msg: Market data farm connection is OK:usfarm
+2026-01-08 11:33:53.332 | INFO     | ib_client.wrapper:error:53 - IB Info: ReqId: -1, Code: 2106, Msg: HMDS data farm connection is OK:ushmds
+2026-01-08 11:33:53.339 | INFO     | ib_client.wrapper:error:53 - IB Info: ReqId: -1, Code: 2158, Msg: Sec-def data farm connection is OK:secdefil
+2026-01-08 11:33:54.321 | INFO     | core.engine:_process_state:94 - --- Processing State: GETTING_OPENING_RANGE ---
+2026-01-08 11:33:54.322 | INFO     | core.engine:_state_get_opening_range:127 - America/New_York ***********************
+2026-01-08 11:33:54.542 | INFO     | core.engine:_state_get_opening_range:162 - Requesting historical data for opening range. End: 20260108 10:00:00 America/New_York (America/New_York), Duration: 1800 S
+2026-01-08 11:33:54.542 | INFO     | ib_client.connector:req_historical_data:186 - Requesting historical data. ReqId: 1, Symbol: SPX
+2026-01-08 11:33:55.010 | INFO     | core.engine:_state_get_opening_range:181 - End of historical data stream received.
+2026-01-08 11:33:56.012 | INFO     | core.engine:_process_state:94 - --- Processing State: MONITORING_BREAKOUT ---
+2026-01-08 11:33:56.013 | INFO     | core.engine:_state_monitor_for_breakout:210 - Requesting 5-second real-time bars to monitor for breakout. (ReqId: 2)
+2026-01-08 11:33:56.014 | INFO     | ib_client.connector:req_real_time_bars:193 - Requesting real-time bars. ReqId: 2, Symbol: SPX
+2026-01-08 11:33:56.151 | ERROR    | ib_client.wrapper:error:55 - IB Error: ReqId: 2, Code: 420, Msg: Invalid Real-time Query:No market data permissions for CBOE IND
+2026-01-08 11:34:56.030 | WARNING  | core.engine:_state_monitor_for_breakout:238 - No real-time bars received in the last 60 seconds. Checking connection.
+2026-01-08 11:34:57.032 | INFO     | core.engine:_process_state:94 - --- Processing State: MONITORING_BREAKOUT ---
+2026-01-08 11:34:57.033 | INFO     | core.engine:_state_monitor_for_breakout:210 - Requesting 5-second real-time bars to monitor for breakout. (ReqId: 3)
+2026-01-08 11:34:57.034 | INFO     | ib_client.connector:req_real_time_bars:193 - Requesting real-time bars. ReqId: 3, Symbol: SPX
+2026-01-08 11:34:57.164 | ERROR    | ib_client.wrapper:error:55 - IB Error: ReqId: 3, Code: 420, Msg: Invalid Real-time Query:No market data permissions for CBOE IND
+2026-01-08 11:35:57.039 | WARNING  | core.engine:_state_monitor_for_breakout:238 - No real-time bars received in the last 60 seconds. Checking connection.
+2026-01-08 11:35:58.062 | INFO     | core.engine:_process_state:94 - --- Processing State: MONITORING_BREAKOUT ---
+2026-01-08 11:35:58.095 | INFO     | core.engine:_state_monitor_for_breakout:210 - Requesting 5-second real-time bars to monitor for breakout. (ReqId: 4)
+2026-01-08 11:35:58.096 | INFO     | ib_client.connector:req_real_time_bars:193 - Requesting real-time bars. ReqId: 4, Symbol: SPX
+2026-01-08 11:35:58.170 | ERROR    | ib_client.wrapper:error:55 - IB Error: ReqId: 4, Code: 354, Msg: Requested market data is not subscribed. Check API status by selecting the Account menu then under Management choose Market Data Subscription Manager and/or availability of delayed data.
+2026-01-08 11:36:58.115 | WARNING  | core.engine:_state_monitor_for_breakout:238 - No real-time bars received in the last 60 seconds. Checking connection.
+2026-01-08 11:36:59.117 | INFO     | core.engine:_process_state:94 - --- Processing State: MONITORING_BREAKOUT ---
+2026-01-08 11:36:59.118 | INFO     | core.engine:_state_monitor_for_breakout:210 - Requesting 5-second real-time bars to monitor for breakout. (ReqId: 5)
+2026-01-08 11:36:59.119 | INFO     | ib_client.connector:req_real_time_bars:193 - Requesting real-time bars. ReqId: 5, Symbol: SPX
+2026-01-08 11:36:59.188 | ERROR    | ib_client.wrapper:error:55 - IB Error: ReqId: 5, Code: 354, Msg: Requested market data is not subscribed. Check API status by selecting the Account menu then under Management choose Market Data Subscription Manager and/or availability of delayed data.
+2026-01-08 11:37:59.123 | WARNING  | core.engine:_state_monitor_for_breakout:238 - No real-time bars received in the last 60 seconds. Checking connection.
+2026-01-08 11:38:00.125 | INFO     | core.engine:_process_state:94 - --- Processing State: MONITORING_BREAKOUT ---
+2026-01-08 11:38:00.126 | INFO     | core.engine:_state_monitor_for_breakout:210 - Requesting 5-second real-time bars to monitor for breakout. (ReqId: 6)
+2026-01-08 11:38:00.127 | INFO     | ib_client.connector:req_real_time_bars:193 - Requesting real-time bars. ReqId: 6, Symbol: SPX
+2026-01-08 11:38:00.198 | ERROR    | ib_client.wrapper:error:55 - IB Error: ReqId: 6, Code: 354, Msg: Requested market data is not subscribed. Check API status by selecting the Account menu then under Management choose Market Data Subscription Manager and/or availability of delayed data.
+2026-01-08 11:39:00.146 | WARNING  | core.engine:run:86 - Keyboard interrupt detected. Shutting down.
+2026-01-08 11:39:00.147 | INFO     | core.engine:shutdown:284 - Shutting down trading engine...
+2026-01-08 11:39:00.149 | INFO     | core.engine:shutdown:288 - Cancelling active real-time bar subscription: 6
+2026-01-08 11:39:00.150 | INFO     | ib_client.connector:cancel_real_time_bars:200 - Cancelling real-time bars. ReqId: 6
+2026-01-08 11:39:00.162 | INFO     | ib_client.connector:disconnect:102 - Disconnecting from IB TWS/Gateway...
+2026-01-08 11:39:00.188 | WARNING  | ib_client.wrapper:connectionClosed:63 - Connection to IB TWS/Gateway lost.
+2026-01-08 11:39:00.208 | INFO     | ib_client.connector:disconnect:108 - Waiting for connection thread to terminate.
+2026-01-08 11:39:00.349 | INFO     | ib_client.connector:disconnect:113 - Disconnected successfully.
+2026-01-08 11:39:00.350 | INFO     | core.engine:shutdown:296 - Engine has been shut down.
+2026-01-08 11:39:00.352 | INFO     | __main__:main:28 - Shutting down the trading bot.

@@ -154,7 +154,7 @@ class Engine:
         req_id = self.ib_connector.get_next_request_id()
         
         # Correctly format endDateTime and durationStr
-        end_date_time_str = range_end_dt.strftime("%Y%m%d %H:%M:%S")
+        end_date_time_str = f"{range_end_dt.strftime('%Y%m%d %H:%M:%S')} {exchange_tz_str}"
         duration_seconds = self.config.opening_range.duration_minutes * 60
         duration_str = f"{duration_seconds} S"
         bar_size = self.config.opening_range.bar_size
