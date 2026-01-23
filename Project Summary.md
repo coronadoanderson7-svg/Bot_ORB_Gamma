@@ -8,7 +8,8 @@ Gamma Exposure (GEX) Analysis: Calculate and incorporate GEX metrics to enhance 
 Trade Execution: Systematically open and close positions based on signal confirmation.
 
 
-Stage 1: Opening Range Identification
+**Stage 1: Opening Range Identification**
+
 The goal is to define the initial price range during the first 30 minutes of the market session.
 
 Step 1: IB API Communication Flow (High-Level)
@@ -38,7 +39,8 @@ HIGH_LEVEL: The maximum value of all collected High prices.
 LOW_LEVEL: The minimum value of all collected Low prices.
 
 
-Stage 2: Breakout Detection
+**Stage 2: Breakout Detection**
+
 Monitor real-time data to detect clean breakouts from the established range.
 
 Step 1: Real-Time Data Flow
@@ -66,27 +68,362 @@ If Low Breakout is true: BEARISH.
 Otherwise: NO SIGNAL.
 
 
+**Stage 3: Gamma Exposure (GEX) Analysis**
 
-Stage 3: Gamma Exposure (GEX) Analysis
-Identify the strike with the largest gamma magnitude to enhance trade selection.
+Objective: create a third stage where we will get the gamma exposure in three different ways, to be used in the four stage: 
 
-Step 1: Data Gathering
+    * We will start creating a parameter in the config.yaml where we are going to be able to select the type of process that calculate the GEX
+        The parameter will have: 
 
-Option Parameters: Use reqSecDefOptParams to get valid expirations and strikes.
-Filter & Build: Identify the 0DTE date and build Contract objects for all Call and Put strikes.
-Request Option Data: Use reqMktData (Generic Ticks 100 or 101/28) to receive Gamma (via tickOptionComputation) and Open Interest.
+            1. Name: GEX Process type
+            2. it needs to be initialized as 0, but can be 0,1 or 2 
 
-Step 2: GEX Calculation
+    * If GEX Process type = 0 the program will use the Option 1 Use a Third-Party GEX Service (gexbot)
+    * If GEX Process type = 1 the program will use the Option 2 Build a Parallelized "GEX Microservice"
+    * If GEX Process type = 2 the program will use the Option 3 Use a Dedicated Data Feed
 
-Calculate GEX for every Call and Put at each strike (K)
-$$GEX_{i} = Gamma_{i} \times Open Interest_{i} \times Multiplier (100) \times sign$$
+    # Option 1 Use a Third-Party GEX Service (gexbot) - Process Specification: GEX Calculation via Third-Party Service (gexbot)
 
-Directional Sign: Call GEX is positive (+); Put GEX is negative (-).
-Total GEX per Strike: $GEX_{Strike} = GEX_{Call} + GEX_{Put}$.
+        This document outlines the technical specification for **Option 1: Use a Third-Party GEX Service (gexbot)**.
+        The process leverages the `gexbot.com` REST API to acquire gamma distribution data.
 
-Output: Highest_Gamma_Strike = Strike price with the largest absolute value $|GEX_{Strike}|.
+    **Objective:** To identify the single options strike price with the highest absolute concentration of gamma exposure for a given underlying and expiration. 
+        This strike level, referred to as `MAX_GAMMA_STRIKE`, will be used as a key input for the trade validation logic in Stage 4.
 
-Stage 4: Trade Execution
+        ---
+
+        ### Step 1: Connection & Authentication
+
+        **Objective:** Establish a secure, authenticated session with the `gexbot.com` API.
+
+        1.  **Action:** The system will initiate a secure HTTPS connection to the API's base endpoint.
+        2.  **Authentication:** Every request must include the API Key as a query parameter in the URL.
+            *   **URL Format:** `https://api.gexbot.com/v1/...?api_key=<YOUR_API_KEY>`
+        3.  **Parameters Required (from `config.yaml`):**
+            *   `gexbot_api_key`: The secret API key for the `gexbot.com` service.
+            *   `gexbot_base_url`: The root URL for the API (`https://api.gexbot.com/`).
+        4.  **Error Handling:**
+            *   If a `401 Unauthorized` response is received, the connection has failed due to an invalid API key. The system should log a critical error and halt the GEX calculation process.
+            *   Connection timeouts or other network-level errors should trigger a retry mechanism before failing.
+
+        ---
+
+        ### Step 2: Data Retrieval (Gamma Fetch)
+
+        **Objective:** Fetch the raw gamma distribution data for a specific ticker and expiration date in a single API call.
+
+        1.  **Action:** The system will send a single `GET` request to the gamma distribution endpoint.
+        2.  **Endpoint:** `/v1/gex/distribution`
+        3.  **Request Parameters:**
+            *   `api_key` (string, required): The authentication key.
+            *   `ticker` (string, required): The underlying symbol (e.g., "SPX").
+            *   `exp` (string, required): The target expiration date in `YYYY-MM-DD` format. The system will construct this date based on the `days_to_expiration` setting in `config.yaml`.
+        4.  **Expected Response (JSON):** The API will return a JSON object containing a `data` array. Each element in the array represents a single strike and its associated gamma values.
+
+            ```json
+            {
+            "success": true,
+            "data": [
+                {
+                "strike": 5000,
+                "long_gamma": 1234567.89,
+                "short_gamma": -987654.32,
+                "total_gamma": 246913.57,
+                "vanna": ...,
+                "charm": ...
+                },
+                {
+                "strike": 5010,
+                "long_gamma": 1100000.00,
+                "short_gamma": -1050000.00,
+                "total_gamma": 50000.00,
+                ...
+                },
+                // ... more strikes
+            ]
+            }
+            ```
+
+        ---
+
+        ### Step 3: Aggregation (Absolute Value Summation)
+
+        **Objective:** To determine the total magnitude of gamma risk at each strike, irrespective of whether it comes from long or short positions.
+
+        1.  **Logic:** For every unique strike `K` returned by the API, the system calculates the **Total Gamma Exposure** by summing the absolute values of the long and short gamma.
+        The `total_gamma` field from the API response is ignored, as it represents a net sum, not the sum of magnitudes.
+
+            `Total_GEX_K = ABS(Short_Gamma_K) + ABS(Long_Gamma_K)`
+
+        2.  **Process:** The system will iterate through the `data` array from the API response. 
+        For each strike, it will perform the absolute summation and store the result in a dictionary where the key is the strike price and the value is its calculated `Total_GEX`.
+
+            **Example Resulting Structure:**
+            ```
+            {
+            5000: 2222222.21,  // abs(-987654.32) + abs(1234567.89)
+            5010: 2150000.00,  // abs(-1050000.00) + abs(1100000.00)
+            ...
+            }
+            ```
+
+        ---
+
+        ### Step 4: Max GEX Identification
+
+        **Objective:** Isolate the single strike price with the highest concentration of total gamma to be used in the trading logic.
+
+        1.  **Operation:** The system will perform a "max" search on the aggregated GEX results from Step 3. It will identify the key (strike) that corresponds to the largest value (Total GEX).
+        2.  **Variable Assignment:** The strike price with the highest `Total_GEX` value is stored in a variable for use in Stage 4.
+            *   **Variable Name:** `MAX_GAMMA_STRIKE`
+
+        **Final Output:** The `MAX_GAMMA_STRIKE` variable, holding a single float value (e.g., `5000.0`), is returned by the process. 
+        This value is now ready to be consumed by the `Trade Execution` stage.
+
+
+    Option 2: Build a Parallelized "GEX Microservice" - GEX Process type = 1 
+
+     # Specification: Interactive Brokers GEX Provider (`IBProvider`)
+
+        ## 1. Introduction & Purpose
+
+        This document outlines the specification for creating a new Gamma Exposure (GEX) data provider, the `IBProvider`. This provider will calculate GEX by fetching real-time options and market data directly from Interactive Brokers (IB).
+
+        The primary goals of this provider are:
+        - To offer a self-sufficient, cost-effective method for calculating GEX without relying on third-party paid APIs.
+        - To increase the application's robustness by providing an alternative GEX source.
+        - To integrate seamlessly into the existing provider factory, adhering to the project's architecture.
+
+        ## 2. File and Class Structure
+
+        - **New File:** `strategy/gex/ib_provider.py`
+        - **Class Name:** `IBProvider`
+        - **Inheritance:** The `IBProvider` class must inherit from `strategy.gex.base_provider.BaseGexProvider` and implement all its abstract methods.
+
+        ## 3. `IBProvider` Implementation Details
+
+        ### 3.1. Initialization (`__init__`)
+
+        The constructor will accept the application's `config` object.
+
+        ```python
+        # Conceptual signature
+        def __init__(self, config: Config):
+            # ...
+        ```
+
+        - It will be responsible for retrieving the singleton instance of the `IBConnector` from the `ib_client.connector` module to enable interaction with the TWS/Gateway API.
+
+        ### 3.2. Main Method (`get_max_gamma_strike`)
+
+        This method is the core of the provider and must adhere to the `BaseGexProvider` interface.
+
+        ```python
+        # Conceptual signature
+        async def get_max_gamma_strike(self, symbol: str) -> Optional[float]:
+            # ...
+        ```
+
+        **Functional Requirements:**
+
+        1.  **Asynchronous Execution:** The method must be `async` to perform non-blocking I/O operations for data fetching.
+        2.  **Fetch Option Chain:**
+            - Use the `IBConnector` to fetch the option chain for the given underlying `symbol`.
+            - The fetch request must be filtered based on parameters from `config.yaml`:
+                - `gex.days_to_expiration`: This will control how far out the expiration dates for the options contracts are.
+                - `gex.strikes_quantity`: This will control how many strikes around the money are fetched.
+            - This includes fetching all available expiration dates and strikes for both calls and puts within the defined filters.
+        3.  **Batch Market Data Request:**
+            - To ensure efficiency, the provider must request model greeks (specifically Gamma) for all relevant option contracts in a single, batched/concurrent request. It must not loop and request data for each contract sequentially.
+        4.  **Calculate Gamma Exposure (GEX):**
+            - For each strike price, calculate the total GEX.
+            - The GEX for a single option contract is: `GEX = gamma * open_interest * 100`.
+            - The total GEX for a strike is the sum of the GEX of all contracts at that strike.
+            - **Calculation Logic:** As per the provided analysis, the GEX contribution from both call and put options should be aggregated to find the total magnitude. The specified logic is `call_gex + put_gex`. The implementation must sum the calculated GEX values for calls and puts at each strike.
+        5.  **Identify Max Gamma Strike:**
+            - After calculating the total GEX for every strike price in the chain, identify the strike with the maximum absolute GEX value.
+        6.  **Return Value:**
+            - Return the strike price (as a `float`) that has the maximum GEX.
+            - Return `None` if the data cannot be fetched or if no options exist for the symbol.
+
+        ## 4. Integration with Provider Factory
+
+        The `strategy/gex/factory.py` file must be updated to integrate the new provider.
+
+        - **Import:** Add `from .ib_provider import IBProvider` to the top of the file.
+        - **Update Factory Function:** Modify the `get_gex_provider` function to instantiate `IBProvider` when `config.gex.provider_type` is `1`, replacing the `NotImplementedError`.
+
+        ```python
+        # strategy/gex/factory.py - Target state change
+        ...
+        from .ib_provider import IBProvider # Import the new provider
+
+        def get_gex_provider(config: Config) -> BaseGexProvider:
+            provider_type = config.gex.provider_type
+
+            if provider_type == 0:
+                return GexbotProvider(config)
+            elif provider_type == 1:
+                # Now implemented with the refactored code
+                return IBProvider(config) 
+            elif provider_type == 2:
+                return MassiveDataProvider(config)
+        ...
+        ```
+
+        ## 5. Configuration
+
+        To use this new provider, the `config.yaml` file must be configured as follows. Note the addition of `days_to_expiration` and `strikes_quantity` which are essential for the `IBProvider`.
+
+        ```yaml
+        gex:
+        provider_type: 1
+        days_to_expiration: 30
+        strikes_quantity: 20
+        # ... other gex settings
+        ```
+
+        ## 6. Testing Requirements
+
+        A new test suite must be created to ensure the `IBProvider` functions correctly.
+
+        - **New Test File:** `tests/strategy/gex/test_ib_provider.py`
+        - **Test Cases:**
+            1.  **Factory Test:** Verify that `get_gex_provider` returns an `IBProvider` instance when `provider_type` is set to `1`.
+            2.  **GEX Calculation Test:**
+                - Create a unit test that calls the GEX calculation logic directly.
+                - Use a predefined set of mock option contracts with known `gamma` and `open_interest`.
+                - Assert that the calculated GEX for each strike and the final max gamma strike are correct, specifically verifying the `call_gex + put_gex` summation logic.
+            3.  **End-to-End Method Test (`get_max_gamma_strike`):**
+                - Mock the `IBConnector` instance and its data-fetching methods.
+                - Simulate the IB API returning a sample option chain and market data.
+                - Assert that `get_max_gamma_strike` returns the expected strike price.
+                - Verify that the implementation attempts to fetch market data concurrently.
+            4.  **Error Handling Tests:**
+                - Simulate the IB API returning no options for a symbol. Assert the method returns `None`.
+                - Simulate API errors during data fetching. Assert that errors are handled gracefully and the method returns `None`.
+
+    Option 3: Use a Dedicated Data Feed - GEX Process type = 2
+
+        # Process Specification: Feed Providers for GEX Calculation (massive)
+
+    This document outlines the technical specification for **Option 3: Use a Dedicated Data Feed** to calculate the strike with the maximum Gamma Exposure (GEX). 
+    This process leverages the `massive.com` REST API to acquire the necessary options data in a single, efficient snapshot.
+
+    **Objective:** To identify the single options strike price with the highest absolute concentration of gamma exposure for a given underlying and expiration. 
+    This strike level, referred to as `MAX_GAMMA_STRIKE`, serves as a key input for the trade execution logic in Stage 4.
+
+    ---
+
+    ### Step 1: Connection & Authentication
+
+    **Objective:** Establish a secure, authenticated session with the `massive.com` API.
+
+    1.  **Action:** The system will initiate a secure HTTPS connection to the API's base endpoint.
+    2.  **Authentication:** Every request must include an `Authorization` header containing the API Key provided by `massive.com`.
+        *   **Header Format:** `Authorization: Bearer <YOUR_API_KEY>`
+    3.  **Parameters Required (from `config.yaml`):**
+        *   `api_key`: The secret API key for the `massive.com` service.
+        *   `base_url`: The root URL for the API (e.g., `https://api.massive.com/v1`).
+    4.  **Error Handling:**
+        *   If a `401 Unauthorized` response is received, the connection attempt has failed due to an invalid API key. The system should log a critical error and halt the GEX calculation process.
+        *   Connection timeouts or other network-level errors should trigger a retry mechanism (e.g., retry up to 3 times) before failing.
+
+    ---
+
+    ### Step 2: Data Request (Parameter-Based Snapshot)
+
+    **Objective:** Fetch a complete snapshot of all required options data (quotes, greeks, open interest) in a single API call to minimize latency.
+
+    1.  **Action:** The system will send a single `GET` request to the options chain endpoint.
+    2.  **Endpoint:** `/options/chain` (example endpoint based on documentation).
+    3.  **Request Parameters:**
+        *   `ticker` (string): The underlying symbol (e.g., "SPX").
+        *   `days_to_expiration` (integer): The target number of days until the option's expiration.
+            The API will use this to select the single, closest expiration date (e.g., a value of `0` targets the 0DTE chain).
+        *   `strikes_quantity` (integer): The total number of strikes to retrieve, centered around the current at-the-money (ATM) price. 
+            For example, a value of `120` would return the 60 strikes above and 60 strikes below the ATM price.
+        *   `fields` (string): A comma-separated list specifying the exact data points to return. This ensures the payload is lean.
+            *   **Required Value:** `"greeks,openInterest"`
+    4.  **Expected Response (JSON):** The API should return a JSON object containing a list of option contracts for the requested chain. 
+        Each element in the list represents a single option (a call or a put) and its associated data.
+
+        ```json
+        {
+        "expiration": "2026-01-21",
+        "options": [
+            {
+            "strike": 5000.0,
+            "type": "call",
+            "openInterest": 1520,
+            "greeks": { "gamma": 0.0015, "delta": 0.52, ... }
+            },
+            {
+            "strike": 5000.0,
+            "type": "put",
+            "openInterest": 2100,
+            "greeks": { "gamma": 0.0014, "delta": -0.48, ... }
+            },
+            // ... more contracts
+        ]
+        }
+        ```
+
+    ---
+
+    ### Step 3: Calculate Short and Long Gamma by Strike
+
+    **Objective:** Process the raw data from the API to calculate the total gamma exposure for both calls and puts at each individual strike price.
+
+    1.  **Data Grouping:** The system will first parse the API response and group the options by their `strike` price. Each strike will have an associated call and put contract.
+    2.  **Gamma Exposure Calculation:** For each strike `K`, the system calculates the gamma exposure contributed by calls and puts separately.
+        *   **Long Gamma (Calls):** This represents the gamma from long call positions.
+            *   `Long_Gamma_Exposure_K = Call_Gamma_K * Call_Open_Interest_K * 100`
+        *   **Short Gamma (Puts):** This represents the gamma from long put positions. 
+            From a market maker's perspective (who is typically short these options), this contributes to their negative gamma position.
+            *   `Short_Gamma_Exposure_K = Put_Gamma_K * Put_Open_Interest_K * 100`
+
+        *(Note: The `100` is the standard option multiplier.)*
+
+    ---
+
+    ### Step 4: Aggregation (Absolute Value Summation)
+
+    **Objective:** To determine the total magnitude of gamma risk at each strike, irrespective of whether it comes from calls or puts.
+
+    1.  **Logic:** For every unique strike price `K` processed in the previous step, the system calculates the **Total Gamma Exposure** by summing the exposure from calls and puts.
+
+        `Total_GEX_K = Long_Gamma_Exposure_K + Short_Gamma_Exposure_K`
+
+    2.  **Process:** The system will iterate through all strikes and compute `Total_GEX_K`. 
+        The result will be stored in a dictionary (or a similar key-value structure) where the key is the strike price and the value is its calculated total GEX.
+
+        **Example Result:**
+        ```
+        {
+        5000: 22500,  // (Call GEX + Put GEX)
+        5010: 18700,
+        5020: 31400,  // High concentration
+        ...
+        }
+        ```
+
+    ---
+
+    ### Step 5: Max GEX Identification
+
+    **Objective:** Isolate the single strike price with the highest concentration of total gamma to be used in the trading logic.
+
+    1.  **Operation:** The system will perform a "max" search on the aggregated GEX results from Step 4. It will find the key (strike) corresponding to the largest value (Total GEX).
+    2.  **Variable Assignment:** The strike price with the highest `Total_GEX` value is stored in a variable for use in Stage 4.
+        *   **Variable Name:** `MAX_GAMMA_STRIKE`
+
+    **Final Output:** The `MAX_GAMMA_STRIKE` variable, holding a single float value (e.g., `5020.0`), is returned by the process. 
+        This value is now ready to be consumed by the `Trade Execution` stage to validate trade signals.
+
+
+
+**Stage 4: Trade Execution**
 
 Systematically open/close positions based on Signal and Gamma outputs.
 

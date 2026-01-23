@@ -23,7 +23,7 @@ from .config_loader import APP_CONFIG
 from ib_client.connector import IBConnector
 from strategy import OpeningRangeStrategy, BarLike as OpeningRangeBar
 from strategy import BreakoutStrategy, BarLike as BreakoutBar
-from strategy.gex_analyzer import GEXAnalyzer
+from strategy.gex.factory import get_gex_provider
 from execution.order_manager import OrderManager
 
 from models.data_models import Bar, Signal, SignalType
@@ -47,7 +47,6 @@ class Engine:
         # Initialize strategies with config dict and symbol
         self.orb_strategy = OpeningRangeStrategy.from_config(self.config.dict())
         self.breakout_strategy = BreakoutStrategy.from_config(self.config.dict(), self.contract.symbol)
-        self.gex_analyzer = GEXAnalyzer(self.ib_connector, self.config.dict())
         self.order_manager = OrderManager(self.ib_connector)
 
         # State variables
@@ -240,20 +239,29 @@ class Engine:
                 self.state = "CONNECTING"
 
     def _state_analyze_gex(self):
-        """Executes Stage 3: GEX Analysis."""
+        """Executes Stage 3: GEX Analysis using a provider factory."""
         logger.info("Performing GEX analysis...")
-        
-        # First, we need to update GEXAnalyzer to use the new contract resolution feature.
-        # This is a critical step before this can run successfully.
-        
-        gex_result = self.gex_analyzer.find_and_calculate_gex()
 
-        if gex_result:
-            self.highest_gex_strike, self.option_expiration = gex_result
-            logger.info(f"Highest GEX strike identified: {self.highest_gex_strike} for expiration {self.option_expiration}")
-            self.state = "PENDING_TRADE_EXECUTION"
-        else:
-            logger.error("GEX analysis failed. Shutting down.")
+        try:
+            # The factory determines which provider to use based on config
+            gex_provider = get_gex_provider(self.config)
+            
+            ticker = self.config.instrument.ticker
+            max_gamma_strike, expiration = gex_provider.get_max_gamma_strike(ticker, self.ib_connector)
+
+            if max_gamma_strike > 0 and expiration:
+                self.highest_gex_strike = max_gamma_strike
+                self.option_expiration = expiration
+                logger.info(f"Max Gamma Strike identified: {self.highest_gex_strike} for expiration {self.option_expiration}")
+                self.state = "PENDING_TRADE_EXECUTION"
+            else:
+                logger.error("GEX analysis failed: Provider returned invalid data.")
+                # Decide how to proceed: halt or trade without GEX data?
+                # For now, we shut down.
+                self.state = "SHUTDOWN"
+
+        except (NotImplementedError, ValueError, ConnectionError) as e:
+            logger.error(f"GEX analysis failed: {e}", exc_info=True)
             self.state = "SHUTDOWN"
 
     def _state_execute_trade(self):

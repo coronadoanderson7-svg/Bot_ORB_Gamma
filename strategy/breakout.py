@@ -2,16 +2,7 @@ import logging
 from datetime import datetime, timedelta
 from typing import Protocol, Dict, Any, List, Optional
 
-from models.data_models import Signal, SignalType
-
-# Define a Protocol for bar-like objects for type safety
-class BarLike(Protocol):
-    timestamp: datetime
-    open: float
-    high: float
-    low: float
-    close: float
-    volume: int
+from models.data_models import Bar, Signal, SignalType
 
 class BreakoutStrategy:
     """
@@ -19,6 +10,7 @@ class BreakoutStrategy:
 
     This strategy is stateful. It aggregates 5-second real-time bars into larger
     candles (e.g., 5-minute) and then checks for breakouts from the opening range.
+    It ensures that aggregated candles are aligned to standard clock intervals.
     """
 
     def __init__(self, aggregation_seconds: int, symbol: str):
@@ -31,18 +23,17 @@ class BreakoutStrategy:
                                        (e.g., 300 for a 5-minute candle).
             symbol (str): The symbol of the instrument being traded.
         """
-        if aggregation_seconds % 5 != 0:
-            raise ValueError("Aggregation seconds must be a multiple of 5.")
+        if aggregation_seconds <= 0:
+            raise ValueError("Aggregation seconds must be a positive integer.")
             
         self.aggregation_seconds = aggregation_seconds
-        self.bars_to_aggregate = aggregation_seconds // 5
         self.symbol = symbol
         
-        self.five_second_bars: List[BarLike] = []
+        self.in_progress_bar: Optional[Bar] = None
         self.logger = logging.getLogger(__name__)
         self.logger.info(
             f"Breakout strategy initialized for {self.symbol} to aggregate "
-            f"{self.bars_to_aggregate} 5-sec bars into {aggregation_seconds}-sec candles."
+            f"5-sec bars into {aggregation_seconds}-sec candles."
         )
 
     @classmethod
@@ -54,83 +45,67 @@ class BreakoutStrategy:
         agg_seconds = breakout_cfg.get("bar_size_seconds", 300)
         return cls(aggregation_seconds=agg_seconds, symbol=symbol)
 
-    def add_realtime_bar(self, bar: BarLike, high_level: float, low_level: float) -> Signal:
+    def add_realtime_bar(self, bar: Bar, high_level: float, low_level: float) -> Signal:
         """
-        Adds a new 5-second real-time bar and checks for a breakout if a full
-        candle has been aggregated.
+        Adds a new 5-second real-time bar, aggregates it into a larger candle,
+        and checks for a breakout when a candle is completed.
 
         Args:
-            bar (BarLike): The incoming 5-second real-time bar.
+            bar (Bar): The incoming 5-second real-time bar.
             high_level (float): The high level of the opening range.
             low_level (float): The low level of the opening range.
 
         Returns:
             Signal: The breakout signal if a candle was completed, otherwise a "HOLD" signal.
         """
-        # Align timestamps to the start of the aggregation window (e.g., 5-min interval)
-        if self.five_second_bars:
-            first_bar_ts = self.five_second_bars[0].timestamp
-            window_start_ts = first_bar_ts - timedelta(microseconds=first_bar_ts.microsecond, seconds=first_bar_ts.second % self.aggregation_seconds)
-            window_end_ts = window_start_ts + timedelta(seconds=self.aggregation_seconds)
-            
-            # If a bar arrives outside the current window, something is wrong. Reset.
-            if not window_start_ts <= bar.timestamp < window_end_ts:
-                self.logger.warning(
-                    f"Bar {bar.timestamp} arrived outside of current aggregation window "
-                    f"({window_start_ts} - {window_end_ts}). Resetting aggregator."
-                )
-                self.five_second_bars = []
+        # Truncate the timestamp to the floor of the aggregation window
+        bar_timestamp_unix = bar.timestamp.timestamp()
+        truncated_timestamp_unix = (bar_timestamp_unix // self.aggregation_seconds) * self.aggregation_seconds
+        truncated_timestamp = datetime.fromtimestamp(truncated_timestamp_unix)
 
-        self.five_second_bars.append(bar)
-        self.logger.debug(f"Aggregator: Added 5s bar. Count: {len(self.five_second_bars)}/{self.bars_to_aggregate}")
+        completed_bar = None
 
-        if len(self.five_second_bars) == self.bars_to_aggregate:
-            self.logger.info(f"Aggregator: Completed a {self.aggregation_seconds}s candle. Checking for breakout.")
+        # If there's no bar in progress, start a new one
+        if self.in_progress_bar is None:
+            self.logger.info(f"Starting new aggregated candle at {truncated_timestamp}")
+            self.in_progress_bar = Bar(
+                timestamp=truncated_timestamp,
+                open=bar.open,
+                high=bar.high,
+                low=bar.low,
+                close=bar.close,
+                volume=bar.volume
+            )
+        # If the new bar belongs to the same time window, update the in-progress bar
+        elif self.in_progress_bar.timestamp == truncated_timestamp:
+            self.in_progress_bar.high = max(self.in_progress_bar.high, bar.high)
+            self.in_progress_bar.low = min(self.in_progress_bar.low, bar.low)
+            self.in_progress_bar.close = bar.close
+            self.in_progress_bar.volume += bar.volume
+            self.logger.debug(f"Updating candle {self.in_progress_bar.timestamp}: C:{self.in_progress_bar.close} H:{self.in_progress_bar.high} L:{self.in_progress_bar.low}")
+        # If the bar starts a new window, the old one is complete
+        else:
+            self.logger.info(f"Completed candle for {self.in_progress_bar.timestamp}. Checking for breakout.")
+            completed_bar = self.in_progress_bar
             
-            # Aggregate the bars into one candle
-            aggregated_candle = self._aggregate_bars()
+            # Start the next bar
+            self.logger.info(f"Starting new aggregated candle at {truncated_timestamp}")
+            self.in_progress_bar = Bar(
+                timestamp=truncated_timestamp,
+                open=bar.open,
+                high=bar.high,
+                low=bar.low,
+                close=bar.close,
+                volume=bar.volume
+            )
             
-            # Reset for the next interval BEFORE checking breakout
-            self.five_second_bars = []
-            
-            # Check for breakout using the newly formed candle
-            if aggregated_candle:
-                return self.check_breakout(aggregated_candle, high_level, low_level)
+        # If a bar was completed in this step, check for a breakout
+        if completed_bar:
+            return self.check_breakout(completed_bar, high_level, low_level)
             
         return Signal(timestamp=bar.timestamp, symbol=self.symbol, signal_type=SignalType.HOLD, strategy="BreakoutStrategy")
 
-    def _aggregate_bars(self) -> Optional[BarLike]:
-        """
-        Creates a single candle from the list of collected 5-second bars.
-        """
-        if not self.five_second_bars:
-            return None
-
-        # Create a new Bar object for the aggregated candle
-        # We can use a simple class or dict that matches the BarLike protocol
-        class AggregatedBar:
-            timestamp: datetime
-            open: float
-            high: float
-            low: float
-            close: float
-            volume: int
-
-        agg_bar = AggregatedBar()
-        agg_bar.timestamp = self.five_second_bars[0].timestamp
-        agg_bar.open = self.five_second_bars[0].open
-        agg_bar.high = max(b.high for b in self.five_second_bars)
-        agg_bar.low = min(b.low for b in self.five_second_bars)
-        agg_bar.close = self.five_second_bars[-1].close
-        agg_bar.volume = sum(b.volume for b in self.five_second_bars)
-        
-        self.logger.debug(
-            f"Aggregated Candle: T:{agg_bar.timestamp} "
-            f"O:{agg_bar.open} H:{agg_bar.high} L:{agg_bar.low} C:{agg_bar.close}"
-        )
-        return agg_bar
-
-    def check_breakout(self, bar: BarLike, high_level: float, low_level: float) -> Signal:
+    def check_breakout(self, bar: Bar, high_level: float, low_level: float) -> Signal:
         """
         Checks for a breakout condition based on an aggregated candle.
         """

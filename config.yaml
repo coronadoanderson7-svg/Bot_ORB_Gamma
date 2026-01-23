@@ -45,8 +45,21 @@ breakout:
 # ==============================================================================
 gex:
   days_to_expiration: 0       # 0 for 0DTE, 1 for 1DTE, etc.
-  strikes_quantity: 120       # Total number of strikes to fetch (centered around ATM)
+  strikes_quantity: 120       # Total number of strikes to fetch (for providers that need it)
   option_multiplier: 100      # Standard multiplier for options contracts
+
+  # --- Provider Selection ---
+  # GEX Process Type: 0 = gexbot, 1 = microservice (not implemented), 2 = massive_data
+  provider_type: 1
+
+  # --- Provider-Specific Settings ---
+  providers:
+    gexbot:
+      api_key: "YOUR_GEXBOT_API_KEY"
+      base_url: "https://api.gexbot.com/v1"
+    massive_data:
+      api_key: "YOUR_MASSIVE_DATA_API_KEY"
+      base_url: "https://api.massive.com/v1" # Example URL
 
 # ==============================================================================
 # Stage 4: Trade Execution
