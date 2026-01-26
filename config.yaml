@@ -65,12 +65,20 @@ gex:
 # Stage 4: Trade Execution
 # ==============================================================================
 trade_execution:
-  take_profit_percentage: 0.20 # 20% gain
-  stop_loss_percentage: 0.30   # 30% loss
   order_defaults:
     entry_order_type: "LMT"
     tp_order_type: "LMT"
     sl_order_type: "STP"
+
+# ==============================================================================
+# Trade Management
+# ==============================================================================
+trade_management:
+  take_profit_pct: 0.50
+  stop_loss_pct: 0.20
+  trailing_stop:
+    activation_profit_pct: 0.10
+    trail_pct: 0.10
 
 # ==============================================================================
 # Logging Configuration

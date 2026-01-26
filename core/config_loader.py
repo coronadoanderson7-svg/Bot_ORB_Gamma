@@ -59,9 +59,18 @@ class OrderDefaultsConfig(BaseModel):
 
 class TradeExecutionConfig(BaseModel):
     """Schema for Trade Execution stage."""
-    take_profit_percentage: float = Field(..., gt=0)
-    stop_loss_percentage: float = Field(..., gt=0)
     order_defaults: OrderDefaultsConfig
+
+class TrailingStopConfig(BaseModel):
+    """Schema for trailing stop parameters."""
+    activation_profit_pct: float = Field(..., gt=0)
+    trail_pct: float = Field(..., gt=0)
+
+class TradeManagementConfig(BaseModel):
+    """Schema for Trade Management parameters."""
+    take_profit_pct: float = Field(..., gt=0)
+    stop_loss_pct: float = Field(..., gt=0)
+    trailing_stop: TrailingStopConfig
 
 class LoggingConfig(BaseModel):
     """Schema for logging settings."""
@@ -77,6 +86,7 @@ class AppConfig(BaseModel):
     breakout: BreakoutConfig
     gex: GEXConfig
     trade_execution: TradeExecutionConfig
+    trade_management: TradeManagementConfig
     logging: LoggingConfig
 
 

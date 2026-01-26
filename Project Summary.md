@@ -425,31 +425,95 @@ Objective: create a third stage where we will get the gamma exposure in three di
 
 **Stage 4: Trade Execution**
 
-Systematically open/close positions based on Signal and Gamma outputs.
+# Trade Execution Specification
 
-Part 1: Open Trade (Conditional Entry) 
+This document outlines the step-by-step process for trade execution within the bot.
 
+## Process Overview
 
-Get ATM: Find the At-The-Money strike closest to current Spot_Price.
-Define Contract: Build the 0DTE Call/Put Option_Contract.
-Bullish Check: IF (Signal is BULLISH) AND (Highest_Gamma_Strike > Spot_Price) → Long Call.
-Bearish Check: IF (Signal is BEARISH) AND (Highest_Gamma_Strike < Spot_Price) → Long Put.
-Entry Price: Request Mid Price for the option to set $P_{entry}$.
-Exit Levels:
-    Take Profit ($P_{TP}$): $P_{entry} \times (1 + 0.20)$.
-    Stop Loss ($P_{SL}$): $P_{entry} \times (1 - 0.30)$.
+When the `Engine` calls `OrderManager.place_trade()`, the following sequence of events is triggered:
 
-Part 2: Bracket Order Submission
+### 1. Trade Validation (`_make_trade_decision`)
 
-Order Type,IB API Action,Description
-Parent (Entry),Limit Order (BUY) at Pentry​. Set transmit = False.,Main order to establish the position.
-Child 1 (TP),Limit Order (SELL) at PTP​. Set transmit = False.,Sells position for a 20% gain.
-Child 2 (SL),Stop Order (SELL) at PSL​. Set transmit = True.,Sells for 30% loss. Sending True triggers the whole group.
+This is the final checkpoint before a trade is initiated. It validates the trade signal against market conditions.
 
-Part 3: Close Trade (Automatic Management) 
+*   **Inputs from Breakout Process:**
+    *   `signal_type`: The direction of the signal (e.g., 'Buy', 'Sell').
+    *   `spot_price`: The current market price of the underlying asset.
+*   **Inputs from GEX Process:**
+    *   A tuple containing:
+        *   `strike_price`: The relevant strike price from GEX analysis.
+        *   `date`: The expiration date for the option.
 
-The Bracket Order (OCA Group) manages the exit automatically:
+*   **Execution Conditions:** The decision to execute a specific option type is based on the following logic:
 
-If $P_{TP}$ hits: Limit Order fills, Stop Loss is automatically cancelled.
-If $P_{SL}$ hits: Stop Order triggers and fills, Profit Taker is automatically cancelled.
+| Signal Type | Condition                 | Action           |
+|-------------|---------------------------|------------------|
+| Buy         | `strike_price > spot_price` | Long Call @ ATM  |
+| Buy         | `strike_price < spot_price` | Long Put @ ATM   |
+| Sell        | `strike_price < spot_price` | Long Put @ ATM   |
+| Sell        | `strike_price > spot_price` | Long Call @ ATM  |
 
+### 2. ATM Strike Calculation (`_get_atm_strike`)
+
+If the trade is validated, this step calculates the At-The-Money (ATM) strike price.
+
+*   **Logic:** The `spot_price` is rounded to the nearest available strike price. The rounding direction might be specified as "above", but for ATM it should be the closest. *Initial implementation will round to the nearest strike above.*
+
+### 3. Option Contract Definition (`_create_option_contract`)
+
+This step constructs the official IBKR `Contract` object required for placing an order.
+
+*   **Inputs:**
+    *   ATM Strike Price (from step 2).
+    *   Trade Direction (Call/Put, determined in step 1).
+    *   Expiration Date (from GEX process).
+*   **Output:** An `ibapi.contract.Contract` object fully defined for the trade.
+
+### 4. Fetch Option Price
+
+Before submitting the order, the system must fetch the current market price of the specific option contract defined in the previous step.
+
+*   **Action:** Request market data for the created `Contract` object form ibkr.
+*   **Output:** The current bid/ask or last traded price of the option.
+
+### 5. Place Opening Order
+
+This two-part step creates and submits the opening order to IBKR.
+
+1.  **Create Opening Order:** An `ibapi.order.Order` object is created. This will specify order type (e.g., Market, Limit), quantity, and action (BUY).
+2.  **Submit Opening Order:** The `Contract` and `Order` objects are submitted to IBKR via the API.
+
+### 6. Post-Trade Management
+
+Once the trade is open and the execution price is confirmed, the focus shifts to managing the position using a server-side bracket order that can be dynamically modified.
+
+*   **Initial Bracket Order Submission:**
+    1.  **Calculate TP/SL Prices:** Based on the actual execution price of the option, calculate the absolute price levels for the Take Profit (TP) and Stop Loss (SL) using percentage values from `config.yaml`.
+    2.  **Structure Bracket Orders:** Create two `Order` objects:
+        *   A `LMT` (Limit) order for the Take Profit price.
+        *   A `STP` (Stop) order for the Stop Loss price.
+    3.  **Submit as Attached Bracket:** Submit these two orders attached to the parent opening order, forming a single, cohesive bracket order on the broker's server. This ensures the position is protected even if the bot disconnects.
+
+*   **Dynamic Trailing Stop Loss via Order Modification:**
+    *   **Monitoring:** The system will monitor the position's status and current market price every 5 seconds.
+    *   **Trailing Condition:** The trailing stop loss logic is activated if the trade meets the following criteria:
+        *   Profit is positive and greater than the `activation_profit_pct` from `config.yaml`.
+        *   Profit is less than the pre-defined `take_profit_pct` from `config.yaml`.
+    *   **Trailing Action (Order Modification):**
+        *   Instead of cancelling the order, the system will **modify** the existing Stop Loss order.
+        *   This is achieved by submitting a new order request using the **same `orderId`** as the original Stop Loss order, but with an updated stop price.
+        *   The new stop price will be calculated based on the `trail_pct` parameter defined in `config.yaml`.
+        *   This action updates the Stop Loss on the broker's server without affecting the Take Profit order, thus preserving the integrity of the bracket.
+
+## Configuration Parameters (`config.yaml`)
+
+The following parameters will be required in `config.yaml` to support this process:
+
+```yaml
+trade_management:
+  take_profit_pct: 0.50  # e.g., 50%
+  stop_loss_pct: 0.20    # e.g., 20%
+  trailing_stop:
+    activation_profit_pct: 0.10 # e.g., 10%
+    trail_pct: 0.10             # e.g., Trail by 10%
