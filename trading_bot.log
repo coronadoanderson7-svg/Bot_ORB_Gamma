@@ -689,3 +689,13 @@ AttributeError: 'OpeningRangeConfig' object has no attribute 'historical_data_ti
 2026-01-08 11:39:00.349 | INFO     | ib_client.connector:disconnect:113 - Disconnected successfully.
 2026-01-08 11:39:00.350 | INFO     | core.engine:shutdown:296 - Engine has been shut down.
 2026-01-08 11:39:00.352 | INFO     | __main__:main:28 - Shutting down the trading bot.
+2026-01-25 19:06:30.896 | INFO     | core.logging_setup:<module>:42 - Logger initialized successfully.
+2026-01-25 19:06:52.547 | INFO     | core.logging_setup:<module>:42 - Logger initialized successfully.
+2026-01-26 11:11:19.237 | INFO     | core.logging_setup:<module>:42 - Logger initialized successfully.
+2026-01-26 11:17:57.557 | INFO     | core.logging_setup:<module>:42 - Logger initialized successfully.
+2026-01-26 11:32:15.659 | INFO     | core.logging_setup:<module>:42 - Logger initialized successfully.
+2026-01-26 11:49:06.813 | INFO     | core.logging_setup:<module>:42 - Logger initialized successfully.
+2026-01-26 12:15:38.912 | INFO     | core.logging_setup:<module>:42 - Logger initialized successfully.
+2026-01-26 12:49:47.642 | INFO     | core.logging_setup:<module>:42 - Logger initialized successfully.
+2026-01-26 13:07:18.188 | INFO     | core.logging_setup:<module>:42 - Logger initialized successfully.
+2026-01-26 13:45:02.772 | INFO     | core.logging_setup:<module>:42 - Logger initialized successfully.

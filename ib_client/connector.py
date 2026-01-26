@@ -12,11 +12,29 @@ This provides a clean, thread-safe, and simplified API for the main trading engi
 import threading
 import time
 from queue import Empty
+from ibapi.contract import Contract
 
 from .wrapper import IBWrapper
 from .client import IBClient
 from core.logging_setup import logger
 from core.config_loader import APP_CONFIG
+
+# A mapping from IB tick type codes to human-readable names
+# Price tick types
+TICK_TYPE_MAP = {
+    1: 'bid',
+    2: 'ask',
+    4: 'last',
+    6: 'high',
+    7: 'low',
+    9: 'close',
+    # Size tick types
+    0: 'bid_size',
+    3: 'ask_size',
+    5: 'last_size',
+    8: 'volume',
+}
+
 
 class IBConnector:
     """
@@ -126,6 +144,122 @@ class IBConnector:
             self._next_request_id += 1
         return current_id
 
+    def fetch_option_chain(self, symbol: str, timeout: int = 20) -> list[float]:
+        """
+        Fetches the option chain (strikes) for a given symbol.
+        This is a blocking operation.
+
+        Args:
+            symbol: The underlying ticker symbol (e.g., 'SPX').
+            timeout: Maximum seconds to wait for a response.
+
+        Returns:
+            A list of available strike prices, or an empty list.
+        """
+        req_id = self.get_next_request_id()
+        
+        underlying_contract = Contract()
+        underlying_contract.symbol = symbol
+        underlying_contract.secType = "STK" 
+        underlying_contract.exchange = "SMART"
+        underlying_contract.currency = APP_CONFIG.instrument.currency
+
+        details = self.resolve_contract_details(underlying_contract, timeout=timeout)
+        if not details:
+            logger.error(f"Could not resolve contract for underlying '{symbol}' to get conId.")
+            return []
+        
+        underlying_con_id = details.contract.conId
+        
+        self.client.fetch_option_chain(
+            req_id=req_id,
+            symbol=symbol,
+            exchange="",
+            sec_type=details.contract.secType,
+            con_id=underlying_con_id
+        )
+
+        try:
+            q_req_id, chain_data = self.wrapper.sec_def_opt_params_queue.get(timeout=timeout)
+            
+            if q_req_id != req_id:
+                logger.error(f"Received option chain data for unexpected reqId. Expected {req_id}, got {q_req_id}.")
+                return []
+
+            if not chain_data:
+                logger.warning(f"Received empty option chain data for {symbol}.")
+                return []
+            
+            strikes = chain_data.get('strikes', [])
+            logger.info(f"Successfully fetched {len(strikes)} strikes for {symbol}.")
+            return strikes
+
+        except Empty:
+            logger.error(f"Timeout fetching option chain for {symbol}. No response from TWS.")
+            return []
+
+    def fetch_market_price(self, contract, timeout: int = 5) -> dict:
+        """
+        Fetches a snapshot of the current market price for a given contract.
+        This is a blocking operation.
+
+        Args:
+            contract: The ibapi.contract.Contract object.
+            timeout: Maximum seconds to wait for a response.
+
+        Returns:
+            A dictionary containing the latest market data (e.g., 'bid', 'ask', 'last').
+        """
+        req_id = self.get_next_request_id()
+        self.client.fetch_market_price(req_id, contract)
+
+        market_data = {}
+        end_time = time.time() + timeout
+
+        try:
+            # Drain queues of old data before starting
+            while not self.wrapper.tick_price_queue.empty():
+                self.wrapper.tick_price_queue.get_nowait()
+            while not self.wrapper.tick_size_queue.empty():
+                self.wrapper.tick_size_queue.get_nowait()
+
+            while time.time() < end_time:
+                try:
+                    # Check for price ticks
+                    p_req_id, p_tick_type, price, _ = self.wrapper.tick_price_queue.get(block=True, timeout=0.1)
+                    if p_req_id == req_id:
+                        key = TICK_TYPE_MAP.get(p_tick_type)
+                        if key:
+                            market_data[key] = price
+                except Empty:
+                    pass  # No price data currently in queue
+
+                try:
+                    # Check for size ticks
+                    s_req_id, s_tick_type, size = self.wrapper.tick_size_queue.get(block=True, timeout=0.1)
+                    if s_req_id == req_id:
+                        key = TICK_TYPE_MAP.get(s_tick_type)
+                        if key:
+                            market_data[key] = size
+                except Empty:
+                    pass  # No size data currently in queue
+                
+                # Heuristic to exit early if we have the most common data points
+                if all(k in market_data for k in ['bid', 'ask', 'last']):
+                    break
+
+        except Exception as e:
+            logger.exception(f"Exception while fetching market price for {contract.symbol}: {e}")
+
+        if not market_data:
+            logger.warning(f"Timeout or no market data received for {contract.symbol} within {timeout}s.")
+        else:
+            logger.info(f"Successfully fetched market price snapshot for {contract.symbol}: {market_data}")
+
+        # Cancel the market data request to be safe, although snapshot should do this automatically
+        self.client.cancelMktData(req_id)
+        return market_data
+            
     # --- Placeholder methods for data and order operations ---
 
     def resolve_contract_details(self, contract, timeout: int = 10):
@@ -154,9 +288,13 @@ class IBConnector:
             # The API may send multiple matches. We will take the first one.
             # We must also consume the "End" signal from the queue.
             while True:
-                end_req_id, _ = self.wrapper.contract_details_queue.get(timeout=timeout)
-                if end_req_id == req_id:
-                    break # Found the end for our request
+                try:
+                    end_req_id, _ = self.wrapper.contract_details_queue.get(timeout=1)
+                    if end_req_id == req_id:
+                        break # Found the end for our request
+                except Empty:
+                    logger.warning(f"Did not find contractDetailsEnd message for reqId {req_id}.")
+                    break
             
             if details:
                 logger.info(f"Resolved contract for {contract.symbol}. ConId: {details.contract.conId}")
@@ -223,17 +361,63 @@ class IBConnector:
 
     # --- Order Management Methods ---
 
-    def place_order(self, contract, order):
+    def place_order(self, contract, order, order_id: int = None):
         """
-        Places an order.
+        Places an order. If order_id is provided, it will be used to modify an
+        existing order. Otherwise, a new order ID is generated.
         """
-        order_id = self.get_next_request_id()
+        if order_id is None:
+            order_id = self.get_next_request_id()
+            
         logger.info(f"Placing order. OrderId: {order_id}, Action: {order.action}, Qty: {order.totalQuantity}, Symbol: {contract.symbol}")
         self.client.placeOrder(order_id, contract, order)
+        return order_id
+
+    def get_order_status(self, timeout: int = 5) -> tuple:
+        """
+        Retrieves the next order status update from the queue.
+        This is a blocking call.
+        """
+        try:
+            return self.wrapper.order_status_queue.get(timeout=timeout)
+        except Empty:
+            return None
 
     def req_positions(self):
         """
-        Requests current positions.
+        Requests current positions. The results will be sent to the position queue.
         """
-        logger.info("Requesting positions.")
+        logger.info("Requesting current account positions.")
         self.client.reqPositions()
+
+    def get_positions(self, timeout: int = 5) -> list:
+        """
+        Retrieves all current positions from the queue.
+        This is a blocking call that waits for the 'positionEnd' sentinel.
+        """
+        positions = []
+        try:
+            # First item might be a position or the end sentinel
+            item = self.wrapper.position_queue.get(timeout=timeout)
+            while item is not None:
+                positions.append(item)
+                item = self.wrapper.position_queue.get(timeout=timeout)
+            return positions
+        except Empty:
+            logger.warning("Timeout or empty queue while fetching positions.")
+            return positions # Return any positions received before timeout
+
+    def get_execution_details(self, req_id: int, timeout: int = 10) -> tuple:
+        """
+        Retrieves execution details for a specific request ID.
+        This is a blocking call.
+        """
+        try:
+            # Note: The default execDetails does not use reqId, but we can filter
+            # if we match it with orderId. For now, we get the next available.
+            q_req_id, contract, execution = self.wrapper.execution_details_queue.get(timeout=timeout)
+            # This is a simplification. A real system needs a robust way to match
+            # executions to requests, likely by orderId.
+            return contract, execution
+        except Empty:
+            return None, None
