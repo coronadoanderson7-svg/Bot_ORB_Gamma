@@ -3,7 +3,7 @@
 import logging
 from datetime import datetime, timedelta
 from pydantic import ValidationError
-from core.config_loader import Config
+from core.config_loader import AppConfig
 from typing import TYPE_CHECKING
 from strategy.gex.base_provider import BaseGexProvider
 from strategy.gex.models import GexbotResponse
@@ -18,12 +18,12 @@ class GexbotProvider(BaseGexProvider):
     GEX provider for gexbot.com.
     Implements the BaseGexProvider to fetch and process gamma exposure data.
     """
-    def __init__(self, config: Config):
+    def __init__(self, config: AppConfig):
         """
         Initializes the GexbotProvider with the application's configuration.
 
         Args:
-            config (Config): The global configuration object.
+            config (AppConfig): The global configuration object.
         """
         super().__init__(config)
         provider_config = self.config.gex.providers.gexbot

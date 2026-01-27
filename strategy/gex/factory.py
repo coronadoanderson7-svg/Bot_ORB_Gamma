@@ -1,12 +1,12 @@
 # strategy/gex/factory.py
 
-from core.config_loader import Config
+from core.config_loader import AppConfig
 from .base_provider import BaseGexProvider
 from .gexbot_provider import GexbotProvider
 from .ib_provider import IBProvider
 from .massive_data_provider import MassiveDataProvider
 
-def get_gex_provider(config: Config) -> BaseGexProvider:
+def get_gex_provider(config: AppConfig) -> BaseGexProvider:
     """
     Factory function to get the appropriate GEX provider based on config.
 

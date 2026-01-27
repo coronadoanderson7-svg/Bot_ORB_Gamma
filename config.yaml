@@ -29,7 +29,7 @@ instrument:
 # ==============================================================================
 opening_range:
   market_open_time: "09:30:00" # Market open time in 'HH:MM:SS' format (local time of exchange)
-  duration_minutes: 30         # Duration in minutes to establish the opening range
+  duration_minutes: 15       # Duration in minutes to establish the opening range
   bar_size: "1 min"            # Bar size for historical data to determine the range
   wait_buffer_seconds: 5       # Extra seconds to wait after range completion before requesting data
   historical_data_timeout_seconds: 20 # Seconds to wait for historical data before timing out

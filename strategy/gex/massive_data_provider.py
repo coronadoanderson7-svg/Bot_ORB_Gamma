@@ -4,7 +4,7 @@ import logging
 from collections import defaultdict
 from pydantic import ValidationError
 
-from core.config_loader import Config
+from core.config_loader import AppConfig
 from strategy.gex.base_provider import BaseGexProvider
 from strategy.gex.models import MassiveDataResponse
 from typing import TYPE_CHECKING
@@ -19,7 +19,7 @@ class MassiveDataProvider(BaseGexProvider):
     GEX provider for massive.com.
     Implements the BaseGexProvider to fetch and process gamma exposure data from a dedicated data feed.
     """
-    def __init__(self, config: Config):
+    def __init__(self, config: AppConfig):
         """
         Initializes the MassiveDataProvider with the application's configuration.
 

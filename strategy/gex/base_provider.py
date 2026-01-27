@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 import logging
 import requests
 from typing import TYPE_CHECKING
-from core.config_loader import Config
+from core.config_loader import AppConfig
 
 if TYPE_CHECKING:
     from ib_client.connector import IBConnector
@@ -14,7 +14,7 @@ class BaseGexProvider(ABC):
     Abstract base class for all GEX data providers.
     It provides a common interface and shared functionality like making HTTP requests.
     """
-    def __init__(self, config: Config):
+    def __init__(self, config: AppConfig):
         self.config = config
         self.session = requests.Session()
 

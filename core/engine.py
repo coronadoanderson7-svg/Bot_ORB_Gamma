@@ -102,8 +102,6 @@ class Engine:
             self._state_analyze_gex()
         elif self.state == "PENDING_TRADE_EXECUTION":
             self._state_execute_trade()
-        elif self.state == "MANAGING_TRADE":
-            self._state_manage_trade()
         elif self.state == "SHUTDOWN":
             return
         else:
@@ -274,33 +272,17 @@ class Engine:
             logger.error("OrderManager, expiration, or breakout signal not set. Cannot place trade. Shutting down.")
             self.state = "SHUTDOWN"
             return
-
+            
         self.order_manager.place_trade(
-            signal_type=self.breakout_signal.signal_type,
+            signal=self.breakout_signal,
             spot_price=self.spot_price,
-            strike_price=self.highest_gex_strike,
-            expiration_date=self.option_expiration
+            highest_gamma_strike=self.highest_gex_strike,
+            expiration=self.option_expiration
         )
-
-        logger.info("Trade order has been placed. Transitioning to trade management.")
-        self.state = "MANAGING_TRADE"
-
-    def _state_manage_trade(self):
-        """Executes Stage 5: Manages the open position and trailing stop."""
-        logger.info("Managing open trade...")
-        try:
-            # This logic will be called every few seconds by the main loop
-            self.order_manager.manage_open_positions()
-
-            # --- Exit condition for this state ---
-            # If there are no more active positions, the trade is closed.
-            if not self.order_manager.has_active_positions():
-                logger.info("Position has been closed. Shutting down for the day.")
-                self.state = "SHUTDOWN"
-
-        except Exception as e:
-            logger.exception(f"An error occurred during trade management: {e}")
-            self.state = "SHUTDOWN"
+        
+        logger.info("Trade order has been placed. For now, the bot will shut down.")
+        # In a real application, you would transition to a state to monitor the open position.
+        self.state = "SHUTDOWN"
 
     def shutdown(self):
         """Gracefully shuts down the trading engine."""
