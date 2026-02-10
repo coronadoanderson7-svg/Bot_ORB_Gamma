@@ -34,7 +34,7 @@ logger.add(
     format="{time:YYYY-MM-DD HH:mm:ss.SSS} | {level: <8} | {name}:{function}:{line} - {message}",
     rotation="10 MB",  # Rotates the log file when it reaches 10 MB
     retention="7 days",# Keeps logs for up to 7 days
-    enqueue=True,      # Makes logging thread-safe
+    enqueue=False,      # Makes logging thread-safe
     backtrace=True,    # Shows full stack trace on exceptions
     diagnose=True      # Adds exception data for easier debugging
 )

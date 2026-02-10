@@ -11,7 +11,7 @@ This provides a clean, thread-safe, and simplified API for the main trading engi
 
 import threading
 import time
-from queue import Empty
+from queue import Empty, Queue
 from ibapi.contract import Contract
 
 from .wrapper import IBWrapper
@@ -130,10 +130,13 @@ class IBConnector:
 
         logger.info("Disconnected successfully.")
 
-    def get_next_request_id(self) -> int:
+    def get_next_request_id(self, count: int = 1) -> int:
         """
         Returns the next valid request ID in a thread-safe manner.
         This is the single source of truth for all request IDs.
+
+        Args:
+            count: The number of IDs to reserve.
         """
         if not self.is_connected():
             logger.error("Cannot get next request ID, not connected.")
@@ -141,7 +144,7 @@ class IBConnector:
         
         with self._request_id_lock:
             current_id = self._next_request_id
-            self._next_request_id += 1
+            self._next_request_id += count
         return current_id
 
     def fetch_option_chain(self, symbol: str, timeout: int = 20) -> list[float]:
@@ -256,8 +259,7 @@ class IBConnector:
         else:
             logger.info(f"Successfully fetched market price snapshot for {contract.symbol}: {market_data}")
 
-        # Cancel the market data request to be safe, although snapshot should do this automatically
-        self.client.cancelMktData(req_id)
+        # The market data request for a snapshot is automatically cancelled by TWS.
         return market_data
             
     # --- Placeholder methods for data and order operations ---
@@ -361,27 +363,54 @@ class IBConnector:
 
     # --- Order Management Methods ---
 
+    def _format_order_details(self, contract, order, order_id) -> str:
+        """Helper to create a detailed log string for an order."""
+        details = [
+            f"Placing OrderId: {order_id}",
+            f"Action: {order.action}",
+            f"Qty: {order.totalQuantity}",
+            f"Symbol: {contract.symbol}",
+            f"SecType: {contract.secType}",
+        ]
+        if contract.secType == "OPT":
+            details.extend([
+                f"Strike: {contract.strike}",
+                f"Right: {contract.right}",
+                f"Expiry: {contract.lastTradeDateOrContractMonth}",
+            ])
+        details.extend([
+            f"OrderType: {order.orderType}",
+            f"TIF: {order.tif}",
+        ])
+        if order.orderType == "LMT" and order.lmtPrice > 0:
+            details.append(f"LmtPrice: {order.lmtPrice}")
+        if order.orderType in ["STP", "STP LMT"] and order.auxPrice > 0:
+            details.append(f"AuxPrice: {order.auxPrice}")
+        if order.parentId:
+            details.append(f"ParentId: {order.parentId}")
+            
+        return ", ".join(details)
+
     def place_order(self, contract, order, order_id: int = None):
         """
         Places an order. If order_id is provided, it will be used to modify an
-        existing order. Otherwise, a new order ID is generated.
+        existing order. For new orders, the orderId from the Order object is used.
         """
-        if order_id is None:
-            order_id = self.get_next_request_id()
-            
-        logger.info(f"Placing order. OrderId: {order_id}, Action: {order.action}, Qty: {order.totalQuantity}, Symbol: {contract.symbol}")
-        self.client.placeOrder(order_id, contract, order)
-        return order_id
+        # For modifications, an explicit order_id is passed.
+        # For new orders, we use the orderId from the Order object itself.
+        id_to_use = order_id if order_id is not None else order.orderId
 
-    def get_order_status(self, timeout: int = 5) -> tuple:
+        log_str = self._format_order_details(contract, order, id_to_use)
+        logger.info(log_str)
+        
+        self.client.placeOrder(id_to_use, contract, order)
+        return id_to_use
+
+    def get_order_status_queue(self) -> Queue:
         """
-        Retrieves the next order status update from the queue.
-        This is a blocking call.
+        Returns the queue for order status messages.
         """
-        try:
-            return self.wrapper.order_status_queue.get(timeout=timeout)
-        except Empty:
-            return None
+        return self.wrapper.order_status_queue
 
     def req_positions(self):
         """

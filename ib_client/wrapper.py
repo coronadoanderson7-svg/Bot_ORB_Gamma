@@ -34,6 +34,7 @@ class IBWrapper(EWrapper):
         self.open_order_queue = Queue()
         self.execution_details_queue = Queue()
         self.position_queue = Queue()
+        self.tick_snapshot_end_queue = Queue()
         
         # Internal state for assembling fragmented data
         self._option_chain_data = {}
@@ -157,6 +158,14 @@ class IBWrapper(EWrapper):
         super().tickPrice(reqId, tickType, price, attrib)
         self.tick_price_queue.put((reqId, tickType, price, attrib))
 
+    def tickSnapshotEnd(self, reqId: int):
+        """
+        Signals the end of a snapshot data request.
+        """
+        super().tickSnapshotEnd(reqId)
+        logger.debug(f"TickSnapshotEnd received for ReqId: {reqId}")
+        self.tick_snapshot_end_queue.put(reqId)
+
     def securityDefinitionOptionParameter(self, reqId: int, exchange: str, underlyingConId: int, tradingClass: str, multiplier: str, expirations, strikes):
         """
         Callback for receiving option chain structure (strikes and expirations).
@@ -199,9 +208,22 @@ class IBWrapper(EWrapper):
     def orderStatus(self, orderId: int, status: str, filled: float, remaining: float, avgFillPrice: float, permId: int, parentId: int, lastFillPrice: float, clientId: int, whyHeld: str, mktCapPrice: float):
         """
         Callback for order status updates (Submitted, Filled, Cancelled).
+        Puts a dictionary with relevant info onto the order status queue.
         """
         super().orderStatus(orderId, status, filled, remaining, avgFillPrice, permId, parentId, lastFillPrice, clientId, whyHeld, mktCapPrice)
-        self.order_status_queue.put((orderId, status, filled, remaining, avgFillPrice))
+        
+        status_data = {
+            "orderId": orderId,
+            "status": status,
+            "filled": filled,
+            "remaining": remaining,
+            "avgFillPrice": avgFillPrice,
+            "parentId": parentId
+        }
+        
+        logger.info(f"Order Status Update: {status_data}")
+
+        self.order_status_queue.put(status_data)
 
     def openOrder(self, orderId: int, contract, order, orderState):
         """

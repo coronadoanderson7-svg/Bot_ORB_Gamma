@@ -9,6 +9,8 @@ The engine operates as a state machine, progressing through the stages
 defined in the project summary.
 """
 import time
+import subprocess
+import sys
 from datetime import datetime, timedelta
 import pytz
 from queue import Empty
@@ -56,6 +58,7 @@ class Engine:
         self.spot_price: float = 0.0
         self.highest_gex_strike: float = 0.0
         self.option_expiration: str | None = None
+        self.gex_strikes: list = []
         
         self.rt_bars_req_id = None # To hold the specific ID for the real-time subscription
 
@@ -102,6 +105,8 @@ class Engine:
             self._state_analyze_gex()
         elif self.state == "PENDING_TRADE_EXECUTION":
             self._state_execute_trade()
+        elif self.state == "MANAGING_TRADE":
+            self._state_manage_trade()
         elif self.state == "SHUTDOWN":
             return
         else:
@@ -247,11 +252,12 @@ class Engine:
             gex_provider = get_gex_provider(self.config)
             
             ticker = self.config.instrument.ticker
-            max_gamma_strike, expiration = gex_provider.get_max_gamma_strike(ticker, self.ib_connector)
+            max_gamma_strike, expiration, strikes = gex_provider.get_max_gamma_strike(ticker, self.ib_connector)
 
-            if max_gamma_strike > 0 and expiration:
+            if max_gamma_strike > 0 and expiration and strikes:
                 self.highest_gex_strike = max_gamma_strike
                 self.option_expiration = expiration
+                self.gex_strikes = strikes
                 logger.info(f"Max Gamma Strike identified: {self.highest_gex_strike} for expiration {self.option_expiration}")
                 self.state = "PENDING_TRADE_EXECUTION"
             else:
@@ -268,21 +274,37 @@ class Engine:
         """Executes Stage 4: Places the trade via the OrderManager."""
         logger.info("Executing trade...")
 
-        if not all([self.order_manager, self.option_expiration, self.breakout_signal]):
-            logger.error("OrderManager, expiration, or breakout signal not set. Cannot place trade. Shutting down.")
+        if not all([self.order_manager, self.option_expiration, self.breakout_signal, self.gex_strikes]):
+            logger.error("OrderManager, expiration, breakout signal, or GEX strikes not set. Cannot place trade. Shutting down.")
             self.state = "SHUTDOWN"
             return
             
         self.order_manager.place_trade(
-            signal=self.breakout_signal,
+            signal_type=self.breakout_signal.signal_type,
             spot_price=self.spot_price,
-            highest_gamma_strike=self.highest_gex_strike,
-            expiration=self.option_expiration
+            strike_price=self.highest_gex_strike,
+            expiration_date=self.option_expiration,
+            strike_list=self.gex_strikes
         )
         
-        logger.info("Trade order has been placed. For now, the bot will shut down.")
-        # In a real application, you would transition to a state to monitor the open position.
-        self.state = "SHUTDOWN"
+        # The OrderManager will now handle the lifecycle of the trade asynchronously.
+        # The engine can transition to a state to monitor the trade.
+        logger.info("Trade order has been submitted. Transitioning to trade management.")
+        self.state = "MANAGING_TRADE"
+
+    def _state_manage_trade(self):
+        """
+        Manages the open position by trailing the stop loss and checking for closure.
+        """
+        logger.info("Managing open trade...")
+        
+        # Allow the OrderManager to manage the trailing stop for active positions
+        self.order_manager.manage_open_positions()
+
+        # If there are no more active or pending positions, the trade is complete.
+        if not self.order_manager.has_active_positions():
+            logger.info("Position is closed and no pending orders. Shutting down.")
+            self.state = "SHUTDOWN"
 
     def shutdown(self):
         """Gracefully shuts down the trading engine."""
@@ -300,5 +322,35 @@ class Engine:
         if self.ib_connector and self.ib_connector.is_connected():
             self.ib_connector.disconnect()
             
+        self._clear_pycache()
+        
         self.state = "SHUTDOWN"
         logger.info("Engine has been shut down.")
+
+    def _clear_pycache(self):
+        """Finds and removes all __pycache__ directories from the project."""
+        logger.info("Clearing Python cache...")
+        
+        command = []
+        shell = False
+        
+        if sys.platform == "win32":
+            # Using PowerShell on Windows
+            command_str = 'Get-ChildItem -Path . -Include __pycache__ -Recurse -Force | Remove-Item -Recurse -Force'
+            command = ['powershell', '-Command', command_str]
+            shell = True # PowerShell command requires shell
+        elif sys.platform in ["linux", "darwin"]:
+            # Using find and rm on Linux/macOS
+            command = ['find', '.', '-type', 'd', '-name', '__pycache__', '-exec', 'rm', '-r', '{}', '+']
+        else:
+            logger.warning(f"Unsupported OS '{sys.platform}' for cache clearing.")
+            return
+
+        try:
+            result = subprocess.run(command, check=True, capture_output=True, text=True, shell=shell)
+            logger.info("__pycache__ directories have been cleared successfully.")
+        except FileNotFoundError:
+            logger.error(f"Cache clearing failed: The command '{command[0]}' was not found. Is it installed and in your PATH?")
+        except subprocess.CalledProcessError as e:
+            logger.error(f"Cache clearing failed with exit code {e.returncode}.")
+            logger.error(f"Stderr: {e.stderr}")

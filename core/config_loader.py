@@ -45,11 +45,32 @@ class BreakoutConfig(BaseModel):
     """Schema for Breakout Detection stage."""
     bar_size_seconds: int = Field(..., gt=0)
 
+# --- GEX Provider-Specific Models ---
+
+class GexbotConfig(BaseModel):
+    """Schema for Gexbot provider settings."""
+    api_key: str
+    base_url: str
+
+class MassiveDataConfig(BaseModel):
+    """Schema for Massive Data provider settings."""
+    api_key: str
+    base_url: str
+
+class ProvidersConfig(BaseModel):
+    """Schema for the nested provider settings."""
+    gexbot: GexbotConfig
+    massive_data: MassiveDataConfig
+
 class GEXConfig(BaseModel):
     """Schema for Gamma Exposure (GEX) Analysis stage."""
     days_to_expiration: int = Field(..., ge=0)
     strikes_quantity: int = Field(..., gt=0)
     option_multiplier: int
+    provider_type: int
+    batch_size: int = Field(default=20, gt=0)
+    batch_pause_seconds: int = Field(default=1, ge=0)
+    providers: ProvidersConfig
 
 class OrderDefaultsConfig(BaseModel):
     """Schema for default order types."""
@@ -59,6 +80,7 @@ class OrderDefaultsConfig(BaseModel):
 
 class TradeExecutionConfig(BaseModel):
     """Schema for Trade Execution stage."""
+    total_quantity: int = Field(..., gt=0)
     order_defaults: OrderDefaultsConfig
 
 class TrailingStopConfig(BaseModel):

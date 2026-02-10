@@ -29,7 +29,7 @@ instrument:
 # ==============================================================================
 opening_range:
   market_open_time: "09:30:00" # Market open time in 'HH:MM:SS' format (local time of exchange)
-  duration_minutes: 15       # Duration in minutes to establish the opening range
+  duration_minutes: 15      # Duration in minutes to establish the opening range
   bar_size: "1 min"            # Bar size for historical data to determine the range
   wait_buffer_seconds: 5       # Extra seconds to wait after range completion before requesting data
   historical_data_timeout_seconds: 20 # Seconds to wait for historical data before timing out
@@ -45,7 +45,7 @@ breakout:
 # ==============================================================================
 gex:
   days_to_expiration: 0       # 0 for 0DTE, 1 for 1DTE, etc.
-  strikes_quantity: 120       # Total number of strikes to fetch (for providers that need it)
+  strikes_quantity: 20       # Total number of strikes to fetch (for providers that need it)
   option_multiplier: 100      # Standard multiplier for options contracts
 
   # --- Provider Selection ---
@@ -65,6 +65,7 @@ gex:
 # Stage 4: Trade Execution
 # ==============================================================================
 trade_execution:
+  total_quantity: 1
   order_defaults:
     entry_order_type: "LMT"
     tp_order_type: "LMT"
@@ -74,15 +75,15 @@ trade_execution:
 # Trade Management
 # ==============================================================================
 trade_management:
-  take_profit_pct: 0.50
-  stop_loss_pct: 0.20
+  take_profit_pct: 50
+  stop_loss_pct: 50
   trailing_stop:
-    activation_profit_pct: 0.10
-    trail_pct: 0.10
+    activation_profit_pct: 10
+    trail_pct: 10
 
 # ==============================================================================
 # Logging Configuration
 # ==============================================================================
 logging:
-  log_level: "INFO" # Options: DEBUG, INFO, WARNING, ERROR, CRITICAL
+  log_level: "DEBUG" # Options: DEBUG, INFO, WARNING, ERROR, CRITICAL
   log_file: "trading_bot.log"
