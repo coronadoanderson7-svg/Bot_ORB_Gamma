@@ -56,6 +56,10 @@ class OpeningRangeStrategy:
         self.low_level: Optional[float] = None
         self.is_complete: bool = False
         
+        # These will be set by the Engine to be timezone-aware
+        self.session_open: Optional[datetime] = None
+        self.session_end: Optional[datetime] = None
+        
         self.logger = logging.getLogger(__name__)
 
     def add_bar(self, bar: BarLike) -> bool:
@@ -77,15 +81,17 @@ class OpeningRangeStrategy:
     def is_bar_valid(self, bar: BarLike) -> bool:
         """
         Checks if the bar is strictly within the market open window.
+        Uses the session_open and session_end attributes set by the Engine.
         """
+        if not self.session_open or not self.session_end:
+            self.logger.error("ORB: session_open and session_end times have not been set by the Engine. Cannot validate bar.")
+            return False
+
         bar_dt = bar.timestamp
-        # Construct the specific open/close datetimes for the date of this bar
-        session_open = datetime.combine(bar_dt.date(), self.market_open)
-        session_end = session_open + timedelta(minutes=self.duration_minutes)
 
         # Check if bar is within [start, end)
-        # Example: 09:30:00 is valid. 09:59:00 is valid. 10:00:00 is NOT valid.
-        return session_open <= bar_dt < session_end
+        # The comparison is now between two timezone-aware datetimes.
+        return self.session_open <= bar_dt < self.session_end
 
     def calculate_levels(self) -> Tuple[Optional[float], Optional[float]]:
         """

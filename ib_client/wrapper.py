@@ -12,15 +12,20 @@ class then consumes these messages from the other side of the queue.
 
 from ibapi.wrapper import EWrapper
 from queue import Queue
+from typing import TYPE_CHECKING
 from core.logging_setup import logger
+
+if TYPE_CHECKING:
+    from .connector import IBConnector
 
 class IBWrapper(EWrapper):
     """
     The EWrapper implementation. This class handles callbacks from the TWS/Gateway
     and places relevant information into queues for processing.
     """
-    def __init__(self):
+    def __init__(self, connector: "IBConnector"):
         super().__init__()
+        self.connector = connector
         self.contract_details_queue = Queue()
         self.historical_data_queue = Queue()
         self.realtime_bar_queue = Queue()
@@ -37,23 +42,50 @@ class IBWrapper(EWrapper):
         self.tick_snapshot_end_queue = Queue()
         
         # Internal state for assembling fragmented data
+        self._historical_data = {}
         self._option_chain_data = {}
 
-    #def error(self, reqId: int, errorCode: int, errorString: str, advancedOrderReject=""):
-    def error(self, reqId: int, errorCode: int, errorString: str):
+    def error(self, *args):
         """
-        Handles error messages from TWS.
-        - reqId -1 indicates a system-level message, not related to a specific request.
+        Handles error messages from TWS. This is a unified handler to accommodate
+        the different signatures used by the EClient and Protobuf decoders.
+        - Legacy signature: (reqId, errorCode, errorString)
+        - Modern EClient signature: (reqId, errorCode, errorString, advancedOrderRejectJson)
+        - Protobuf signature: (reqId, errorTime, errorCode, errorString, advancedOrderRejectJson)
         """
-        super().error(reqId, errorCode, errorString)
-        # IB's "error" callback is also used for informational messages.
-        # Codes 2100-2110 are info messages about connectivity.
-        # We will log them as INFO and not put them in the error queue to avoid
-        # treating them as critical failures.
-        if 2100 <= errorCode <= 2110 or errorCode in [2158]:
-            logger.info(f"IB Info: ReqId: {reqId}, Code: {errorCode}, Msg: {errorString}")
+        # Set default values
+        reqId, errorCode, errorString, advancedOrderRejectJson = -1, 0, "", ""
+
+        # Unpack arguments based on length
+        if len(args) == 5:  # Protobuf signature from the traceback
+            reqId, _errorTime, errorCode, errorString, advancedOrderRejectJson = args
+        elif len(args) == 4:  # Modern EClient signature
+            reqId, errorCode, errorString, advancedOrderRejectJson = args
+        elif len(args) == 3:  # Legacy signature
+            reqId, errorCode, errorString = args
         else:
-            logger.error(f"IB Error: ReqId: {reqId}, Code: {errorCode}, Msg: {errorString}")
+            logger.error(f"IB Error: Received error with unknown signature: {args}")
+            self.error_queue.put((-1, -1, f"Unknown error signature: {args}"))
+            return
+
+        # This logic is from the original implementation.
+        # Codes 2100-2110 and 2158 are informational.
+        if 2100 <= errorCode <= 2110 or errorCode in [2158]:
+            log_msg = f"IB Info: ReqId: {reqId}, Code: {errorCode}, Msg: {errorString}"
+            if advancedOrderRejectJson:
+                log_msg += f" | AdvancedReject: {advancedOrderRejectJson}"
+            logger.info(log_msg)
+            self.error_queue.put((reqId, errorCode, errorString))
+        else:
+            # For actual errors, call the base class's error handler which prints to stderr,
+            # and also log it through our own logger.
+            super().error(reqId, errorCode, errorString, advancedOrderRejectJson)
+            log_msg = f"IB Error: ReqId: {reqId}, Code: {errorCode}, Msg: {errorString}"
+            if advancedOrderRejectJson:
+                log_msg += f" | AdvancedReject: {advancedOrderRejectJson}"
+            logger.error(log_msg)
+            # The original code put a 3-tuple on the queue. We maintain that contract
+            # to avoid breaking the consumer of the queue.
             self.error_queue.put((reqId, errorCode, errorString))
             
     def connectionClosed(self):
@@ -61,7 +93,8 @@ class IBWrapper(EWrapper):
         Handles the event of a lost connection to TWS/Gateway.
         """
         super().connectionClosed()
-        logger.warning("Connection to IB TWS/Gateway lost.")
+        logger.warning("Connection to IB TWS/Gateway lost. Notifying connector.")
+        self.connector._on_connection_closed()
         self.error_queue.put((-1, -1, "Connection lost"))
 
     def nextValidId(self, orderId: int):
@@ -79,17 +112,24 @@ class IBWrapper(EWrapper):
     def historicalData(self, reqId: int, bar):
         """
         Callback for historical data requests.
+        This method aggregates bars for a request until historicalDataEnd is called.
         """
-        logger.debug(f"HistoricalData ReqId: {reqId}, Bar: {bar}")
-        self.historical_data_queue.put((reqId, bar))
+        if reqId not in self._historical_data:
+            self._historical_data[reqId] = []
+        self._historical_data[reqId].append(bar)
 
     def historicalDataEnd(self, reqId: int, start: str, end: str):
         """
         Signals the end of a historical data stream.
+        The fully assembled list of bars is now put on the queue.
         """
         super().historicalDataEnd(reqId, start, end)
         logger.debug(f"HistoricalDataEnd ReqId: {reqId}")
-        self.historical_data_queue.put((reqId, None)) # Sentinel value
+        if reqId in self._historical_data:
+            self.historical_data_queue.put((reqId, self._historical_data[reqId]))
+            del self._historical_data[reqId]
+        else:
+            self.historical_data_queue.put((reqId, [])) # No bars received
 
     def realtimeBar(self, reqId: int, time: int, open_: float, high: float, low: float, close: float,
                     volume: int, wap: float, count: int):
@@ -146,10 +186,16 @@ class IBWrapper(EWrapper):
     def tickSize(self, reqId: int, tickType: int, size):
         """
         Callback for size-related ticks.
-        TickType 27 is specifically Open Interest.
+        Tick Types 27 (Call OI) and 28 (Put OI) are key for GEX.
         """
         super().tickSize(reqId, tickType, size)
-        self.tick_size_queue.put((reqId, tickType, size))
+        # The 'size' can come as a string or Decimal from the API.
+        # Convert to int immediately for consistent data types downstream.
+        try:
+            int_size = int(size)
+            self.tick_size_queue.put((reqId, tickType, int_size))
+        except (ValueError, TypeError):
+            logger.warning(f"Could not convert tickSize 'size' to int. ReqId: {reqId}, TickType: {tickType}, Size: {size}")
 
     def tickPrice(self, reqId: int, tickType: int, price: float, attrib):
         """

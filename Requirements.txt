@@ -1,4 +1,4 @@
-ibapi>=9.76.1
+# Pinned to a specific version to ensure API stability and prevent breaking changes.
 pandas>=2.0.0
 numpy>=1.24.0
 pytz>=2023.3

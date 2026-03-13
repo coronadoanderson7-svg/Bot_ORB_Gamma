@@ -248,7 +248,7 @@ class IBProvider(BaseGexProvider):
         logger.info(f"Requesting streaming market data for {len(contracts)} option contracts.")
         for contract in contracts:
             req_id = ib_connector.get_next_request_id()
-            req_id_map[req_id] = {"strike": contract.strike, "right": contract.right}
+            req_id_map[req_id] = {"strike": contract.strike, "right": contract.right, "contract": contract}
             data_aggregator[req_id] = {"gamma": None, "oi": None}
             # Request greeks (104) and open interest (101) via a streaming request
             ib_connector.req_market_data(req_id, contract, "101,104", False, False)
@@ -265,14 +265,14 @@ class IBProvider(BaseGexProvider):
         start_time = datetime.now()
         
         # Use a configurable timeout. Default to 5 seconds for streaming, which is usually very fast.
-        timeout_seconds = self.config.gex.batch_timeout_seconds if hasattr(self.config.gex, 'batch_timeout_seconds') else 5
+        timeout_seconds = self.config.gex.batch_timeout_seconds if hasattr(self.config.gex, 'batch_timeout_seconds') else 15
 
         # A set of request IDs for which we are still waiting for data.
         pending_req_ids = set(req_id_map.keys())
 
         while pending_req_ids:
             # Check for overall timeout
-            if (datetime.now() - start_time).seconds > timeout_seconds:
+            if (datetime.now() - start_time).total_seconds() > timeout_seconds:
                 logger.warning(
                     f"Batch data collection timed out after {timeout_seconds}s. "
                     f"{len(pending_req_ids)}/{num_requests} requests did not complete. GEX data will be partial."
@@ -281,8 +281,27 @@ class IBProvider(BaseGexProvider):
                 for req_id in list(pending_req_ids):
                     data = data_aggregator[req_id]
                     info = req_id_map[req_id]
-                    logger.debug(f"Incomplete ReqId {req_id} ({info['strike']} {info['right']}): Gamma={data['gamma']}, OI={data['oi']}")
+                    
+                    missing_fields = []
+                    if data["gamma"] is None:
+                        missing_fields.append("Gamma")
+                    if data["oi"] is None:
+                        missing_fields.append("OI")
+                    logger.warning(f"Incomplete ReqId {req_id} ({info['strike']} {info['right']}): Missing {', '.join(missing_fields)}. (Gamma={data['gamma']}, OI={data['oi']})")
                 break
+
+            # Check for system errors / connection status
+            try:
+                err_req_id, err_code, err_msg = ib_connector.wrapper.error_queue.get_nowait()
+                # 2119: Market data farm is connecting, 2103: Broken, 2105: HMDS Broken
+                if err_code in [2119, 2103, 2105]:
+                    logger.warning(f"Data farm connection instability detected (Code {err_code}). Pausing...")
+                    if self._wait_for_recovery(ib_connector):
+                        # Reset timeout start time to give the batch a fair chance after recovery
+                        start_time = datetime.now()
+                        logger.info("Connection recovered. Resuming data collection...")
+            except Empty:
+                pass
 
             try:
                 # Check for greeks from the queue (non-blocking)
@@ -299,7 +318,10 @@ class IBProvider(BaseGexProvider):
                 # Check for open interest from the queue (non-blocking)
                 oi_req_id, tick_type, size = ib_connector.wrapper.tick_size_queue.get_nowait()
                 if oi_req_id in data_aggregator and data_aggregator[oi_req_id]["oi"] is None:
-                    if tick_type in [27, 28]:  # Call OI, Put OI
+                    # Strict matching to avoid race condition where IB sends 0 for the wrong right
+                    contract_right = req_id_map[oi_req_id]["right"]
+                    if (contract_right == "C" and tick_type == 27) or \
+                       (contract_right == "P" and tick_type == 28):
                         data_aggregator[oi_req_id]["oi"] = size
             except Empty:
                 pass  # Queue is empty, continue
@@ -325,26 +347,82 @@ class IBProvider(BaseGexProvider):
             f"{(datetime.now() - start_time).total_seconds():.2f} seconds."
         )
 
+    def _wait_for_recovery(self, ib_connector: "IBConnector", timeout: int = 60) -> bool:
+        """
+        Waits for a connection restoration message (2104/2106).
+        Returns True if recovered, False if timed out.
+        """
+        start = datetime.now()
+        while (datetime.now() - start).seconds < timeout:
+            try:
+                _, code, msg = ib_connector.wrapper.error_queue.get(timeout=1)
+                # 2104: Market data farm OK, 2106: HMDS data farm OK
+                if code in [2104, 2106]:
+                    logger.info(f"Connection restored: {msg}")
+                    return True
+                elif code in [2119, 2103, 2105]:
+                    pass # Ignore repeated errors while waiting
+                else:
+                    logger.warning(f"Received error while waiting for recovery: Code {code} - {msg}")
+            except Empty:
+                pass
+        
+        logger.error("Timed out waiting for connection recovery.")
+        return False
+
     def _calculate_gex(self, req_id_map: Dict, data_aggregator: Dict) -> Dict[float, float]:
         """Calculates total GEX per strike from the aggregated data."""
         logger.info(f"Calculating GEX from {len(data_aggregator)} collected data points...")
         gex_by_strike = defaultdict(float)
         multiplier = self.config.gex.option_multiplier
+        
+        # Data structure for logging table: strike -> {right: {gamma, oi}}
+        table_data = defaultdict(lambda: {"C": {"gamma": None, "oi": None}, "P": {"gamma": None, "oi": None}})
 
         for req_id, data in data_aggregator.items():
             gamma = data.get("gamma")
             oi = data.get("oi")
             
+            strike_info = req_id_map.get(req_id)
+            if not strike_info:
+                continue
+
+            strike = strike_info["strike"]
+            right = strike_info["right"]
+
+            # Store raw data for the table
+            table_data[strike][right]["gamma"] = gamma
+            table_data[strike][right]["oi"] = oi
+            
             # Ensure data is valid before calculating
             if gamma is not None and oi is not None and gamma > -1 and oi > -1:
-                strike_info = req_id_map[req_id]
-                strike = strike_info["strike"]
-                
                 # Formula: GEX = gamma * open_interest * 100
                 gex = gamma * oi * multiplier
                 gex_by_strike[strike] += gex
             else:
-                strike_info = req_id_map.get(req_id, {"strike": "Unknown", "right": ""})
-                logger.debug(f"Skipping GEX calc for ReqId {req_id} (Strike: {strike_info['strike']} {strike_info['right']}) due to missing data: Gamma={gamma}, OI={oi}")
+                logger.debug(f"Skipping GEX calc for ReqId {req_id} (Strike: {strike} {right}) due to missing data: Gamma={gamma}, OI={oi}")
+
+        # Generate and log the table
+        log_lines = ["GEX Calculation Data Table:"]
+        header = f"{'Strike':<10} | {'Call OI':<10} | {'Call Gamma':<12} | {'Put OI':<10} | {'Put Gamma':<12} | {'Total GEX':<12}"
+        log_lines.append(header)
+        log_lines.append("-" * len(header))
+
+        for strike in sorted(table_data.keys()):
+            c_data = table_data[strike]["C"]
+            p_data = table_data[strike]["P"]
+            
+            c_oi = c_data["oi"] if c_data["oi"] is not None else "N/A"
+            c_gamma = f"{c_data['gamma']:.4f}" if isinstance(c_data["gamma"], (int, float)) else "N/A"
+            
+            p_oi = p_data["oi"] if p_data["oi"] is not None else "N/A"
+            p_gamma = f"{p_data['gamma']:.4f}" if isinstance(p_data["gamma"], (int, float)) else "N/A"
+            
+            total_gex = gex_by_strike.get(strike, 0.0)
+            
+            log_lines.append(f"{strike:<10.2f} | {c_oi:<10} | {c_gamma:<12} | {p_oi:<10} | {p_gamma:<12} | {total_gex:<12.2f}")
+
+        # The table is logged at WARNING level to ensure it appears in logs where INFO might be suppressed.
+        logger.warning("\n" + "\n".join(log_lines))
 
         return dict(gex_by_strike)

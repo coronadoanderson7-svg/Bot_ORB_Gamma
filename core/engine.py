@@ -11,7 +11,7 @@ defined in the project summary.
 import time
 import subprocess
 import sys
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import pytz
 from queue import Empty
 from typing import Optional
@@ -168,37 +168,59 @@ class Engine:
             f"Duration: {duration_str}"
         )
         self.ib_connector.req_historical_data(
-            req_id, self.contract, end_date_time=end_date_time_str, duration_str=duration_str,
-            bar_size_setting=bar_size, what_to_show="TRADES", use_rth=1, format_date=1, keep_up_to_date=False
+            req_id, self.contract, end_date_time=end_date_time_str,
+            duration_str=duration_str, bar_size_setting=bar_size,
+            what_to_show="TRADES", use_rth=1,
+            # Request dates as Unix timestamps to bypass potential string parsing bugs in the API library.
+            format_date=2, keep_up_to_date=False
         )
 
         # --- 3. Process the data from the queue ---
         try:
-            bars_received = []
-            while True:
-                # Use a short timeout to prevent blocking indefinitely if the queue is empty before the sentinel
-                _, data = self.ib_connector.wrapper.historical_data_queue.get(
-                    timeout=self.config.opening_range.historical_data_timeout_seconds
-                )
-                
-                if data is None: # Sentinel value marks the end
-                    logger.info("End of historical data stream received.")
-                    break
-                
-                bar = Bar(
-                    timestamp=datetime.strptime(data.date, "%Y%m%d %H:%M:%S"),
-                    open=data.open, high=data.high, low=data.low, close=data.close, volume=data.volume
-                )
-                bars_received.append(bar)
+            # The wrapper now aggregates bars and sends them as a single list.
+            q_req_id, bars_received = self.ib_connector.wrapper.historical_data_queue.get(
+                timeout=self.config.opening_range.historical_data_timeout_seconds
+            )
 
-            # Feed bars to strategy *after* collecting them all
-            for bar in bars_received:
+            if q_req_id != req_id:
+                logger.error(f"Received historical data for wrong reqId. Expected {req_id}, got {q_req_id}. Shutting down.")
+                self.state = "SHUTDOWN"
+                return
+
+            logger.info(f"Received {len(bars_received)} bars for opening range analysis.")
+
+            if not bars_received:
+                logger.error("No historical bars received for opening range. Shutting down.")
+                self.state = "SHUTDOWN"
+                return
+
+            # Set the timezone-aware boundaries on the strategy before processing bars.
+            # This makes the Engine the source of truth for the time window and fixes
+            # the naive vs. aware datetime comparison error.
+            self.orb_strategy.session_open = market_open_dt
+            self.orb_strategy.session_end = range_end_dt
+            logger.info(f"Setting opening range strategy time window: {market_open_dt} to {range_end_dt}")
+
+            # Feed bars to strategy
+            for data in bars_received:
+                # With formatDate=2, data.date is a string representing a Unix timestamp.
+                # We convert it to an integer and then to a naive datetime object.
+                bar = Bar(
+                    timestamp=datetime.fromtimestamp(int(data.date), tz=timezone.utc),
+                    open=data.open,
+                    high=data.high,
+                    low=data.low,
+                    close=data.close,
+                    # Safely convert volume, which can be a string from the API, to an integer.
+                    volume=int(float(data.volume)) if data.volume and data.volume.replace('.', '', 1).isdigit() else 0
+                )
                 self.orb_strategy.add_bar(bar)
 
             # Calculate levels and transition state
             high, low = self.orb_strategy.calculate_levels()
             if high and low:
                 self.orb_high, self.orb_low = high, low
+                logger.info(f"Opening Range calculated: High={self.orb_high}, Low={self.orb_low}")
                 self.state = "MONITORING_BREAKOUT"
             else:
                 logger.error("Failed to calculate opening range from received bars. Shutting down.")
@@ -219,7 +241,7 @@ class Engine:
                 _, data = self.ib_connector.wrapper.realtime_bar_queue.get(timeout=60)
                 
                 bar = Bar(
-                    timestamp=datetime.fromtimestamp(data['time']),
+                    timestamp=datetime.fromtimestamp(data['time'], tz=timezone.utc),
                     open=data['open'], high=data['high'], low=data['low'], close=data['close'], volume=data['volume']
                 )
 
@@ -261,7 +283,11 @@ class Engine:
                 logger.info(f"Max Gamma Strike identified: {self.highest_gex_strike} for expiration {self.option_expiration}")
                 self.state = "PENDING_TRADE_EXECUTION"
             else:
-                logger.error("GEX analysis failed: Provider returned invalid data.")
+                logger.error(
+                    "GEX analysis failed: Provider returned invalid data. "
+                    f"Received: max_gamma_strike={max_gamma_strike}, expiration='{expiration}', "
+                    f"strikes_count={len(strikes) if strikes is not None else 'None'}"
+                )
                 # Decide how to proceed: halt or trade without GEX data?
                 # For now, we shut down.
                 self.state = "SHUTDOWN"
@@ -298,6 +324,12 @@ class Engine:
         """
         logger.info("Managing open trade...")
         
+        # First, check if the connection is still active. If not, try to reconnect.
+        if not self.ib_connector.is_connected():
+            logger.warning("Connection lost while managing trade. Transitioning to CONNECTING state.")
+            self.state = "CONNECTING"
+            return
+
         # Allow the OrderManager to manage the trailing stop for active positions
         self.order_manager.manage_open_positions()
 

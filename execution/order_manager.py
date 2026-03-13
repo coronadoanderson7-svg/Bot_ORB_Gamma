@@ -95,34 +95,41 @@ class OrderManager:
         logger.info(f"Created contract: {symbol} {expiration_date} {atm_strike} {option_type}")
         return contract
 
-    def _fetch_option_price(self, contract: Contract) -> Optional[float]:
+    def _fetch_option_price(self, contract: Contract, max_retries: int = 3, retry_delay: int = 2) -> Optional[float]:
         """
         Fetches the current market price for a given option contract.
+        Includes retry logic to handle transient market data timeouts.
         """
         logger.info(f"Fetching market price for {contract.localSymbol}...")
-        market_data = self.ib_connector.fetch_market_price(contract)
-        logger.info(f"Market data received: {market_data}")
-        
-        if not market_data:
-            logger.error(f"Failed to fetch market price for {contract.localSymbol}.")
-            return None
 
-        # Prioritize which price to use. Since we are placing a BUY order,
-        # the 'ask' price is the most relevant.
-        price = market_data.get('ask')
-        if price is None or price == -1: # IB uses -1 for unavailable data
-            logger.warning(f"'ask' price not available for {contract.localSymbol}. Falling back.")
-            price = market_data.get('last')
-        if price is None or price == -1:
-            logger.warning(f"'last' price not available for {contract.localSymbol}. Falling back to close.")
-            price = market_data.get('close') 
+        for attempt in range(max_retries):
+            market_data = self.ib_connector.fetch_market_price(contract)
+            logger.info(f"Attempt {attempt + 1}/{max_retries} - Market data received: {market_data}")
 
-        if price and price > 0:
-             logger.info(f"Using price {price} for {contract.localSymbol}.")
-             return price
-        else:
-            logger.error(f"Could not determine a valid price for {contract.localSymbol} from market data: {market_data}")
-            return None
+            if not market_data:
+                if attempt < max_retries - 1:
+                    logger.warning(f"Failed to fetch market price for {contract.localSymbol}. Retrying in {retry_delay}s...")
+                    time.sleep(retry_delay)
+                    continue
+                else:
+                    logger.error(f"Failed to fetch market price for {contract.localSymbol} after {max_retries} attempts.")
+                    return None
+
+            # Prioritize which price to use.
+            price = market_data.get('ask')
+            if price is None or price <= 0:
+                logger.warning(f"'ask' price not available for {contract.localSymbol}. Falling back to 'last'.")
+                price = market_data.get('last')
+            if price is None or price <= 0:
+                logger.warning(f"'last' price not available for {contract.localSymbol}. Falling back to 'close'.")
+                price = market_data.get('close')
+
+            if price and price > 0:
+                logger.info(f"Using price {price} for {contract.localSymbol}.")
+                return price
+
+        logger.error(f"Could not determine a valid price for {contract.localSymbol} from market data after retries: {market_data}")
+        return None
 
     def _place_opening_order(self, contract: Contract, price: float):
         """
@@ -351,43 +358,39 @@ class OrderManager:
         try:
             while not self.ib_connector.get_order_status_queue().empty():
                 status_update = self.ib_connector.get_order_status_queue().get_nowait()
-                order_id = status_update['orderId']
-                status = status_update['status']
+                order_id = status_update.get('orderId')
+                status = status_update.get('status')
 
-                # Case 1: The parent order just got filled. Store its fill price.
-                if order_id in self.active_positions and status == 'Filled':
-                    # Check if it's a parent order that we haven't recorded the fill price for yet
-                    if 'avg_cost' not in self.active_positions[order_id]:
-                        avg_cost = status_update['avgFillPrice']
+                # Case 1: The update is for a tracked PARENT order.
+                if order_id in self.active_positions:
+                    # If the parent order is filled, record its average fill price.
+                    if status == 'Filled' and 'avg_cost' not in self.active_positions[order_id]:
+                        avg_cost = status_update.get('avgFillPrice', 0)
                         if avg_cost > 0:
                             self.active_positions[order_id]['avg_cost'] = avg_cost
                             logger.info(f"Parent order {order_id} filled at average cost {avg_cost}. Position is now fully active for management.")
                         else:
                             logger.warning(f"Parent order {order_id} filled but avgFillPrice is {avg_cost}. Cannot manage position.")
-                        continue # Continue to next message in queue
+                    # This message was for a parent, so we are done with it.
+                    continue
 
-                # Case 2: A child order was filled/cancelled, which means the position is closed.
-                # Find which parent position this child order belongs to.
+                # Case 2: If not a parent, it might be a CHILD order with a terminal status.
                 terminal_states = {'Filled', 'Cancelled', 'ApiCancelled', 'Inactive'}
-                parent_to_remove = None
-                for parent_id, pos_data in self.active_positions.items():
-                    # Check if the update is for a child order of an active position
-                    if order_id in [pos_data['stop_loss_order_id'], pos_data['take_profit_order_id']]:
-                        # AND check if the status is terminal
-                        if status in terminal_states:
+                if status in terminal_states:
+                    parent_to_remove = None
+                    for parent_id, pos_data in self.active_positions.items():
+                        if order_id in [pos_data.get('stop_loss_order_id'), pos_data.get('take_profit_order_id')]:
                             logger.info(
                                 f"Detected position closure for parent order {parent_id}. "
-                                f"Child order {order_id} has a terminal status: {status}."
+                                f"Child order {order_id} has a terminal status: '{status}'."
                             )
                             parent_to_remove = parent_id
-                            break
-                        else:
-                            # Log non-terminal updates for debugging but don't act on them.
-                            logger.debug(f"Received non-terminal status '{status}' for child order {order_id}. No action taken.")
-                
-                if parent_to_remove:
-                    del self.active_positions[parent_to_remove]
-                    logger.info(f"Position for parent order {parent_to_remove} has been closed and removed from active management.")
+                            break  # Found the parent, no need to check other positions
+
+                    if parent_to_remove:
+                        # Use pop to safely remove the item from the dictionary
+                        self.active_positions.pop(parent_to_remove, None)
+                        logger.info(f"Position for parent order {parent_to_remove} has been closed and removed from active management.")
 
         except queue.Empty:
             pass # This is a normal condition, means no new status updates.

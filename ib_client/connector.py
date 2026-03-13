@@ -44,7 +44,7 @@ class IBConnector:
         """
         Initializes the IBConnector.
         """
-        self.wrapper = IBWrapper()
+        self.wrapper = IBWrapper(self)
         self.client = IBClient(self.wrapper)
         
         self.host = APP_CONFIG.connection.host
@@ -129,6 +129,15 @@ class IBConnector:
                 logger.warning("Connection thread did not terminate gracefully.")
 
         logger.info("Disconnected successfully.")
+
+    def _on_connection_closed(self):
+        """
+        Callback method for the wrapper to signal that the connection has been lost.
+        This is called automatically by the EWrapper's connectionClosed callback.
+        """
+        if self._is_connected:
+            self._is_connected = False
+            logger.info("Connector state has been set to disconnected due to connection loss.")
 
     def get_next_request_id(self, count: int = 1) -> int:
         """
