@@ -1,9 +1,9 @@
-Bot_ORB_Gamma (V4)
+# Bot_ORB_Gamma (V4)
 
 A modular, Python-based algorithmic trading bot that combines Opening Range Breakout (ORB) strategies with Gamma Exposure (GEX) analysis for automated intraday trading via Interactive Brokers.
 
 
-Table of Contents
+# Table of Contents
 
 Overview
 Features
@@ -18,7 +18,7 @@ Documentation
 Disclaimer
 
 
-Overview
+# Overview
 Bot_ORB_Gamma is a quantitative trading system engineered for automated intraday operations on the US equities and options markets. It executes a four-stage pipeline:
 
 Opening Range Detection — Captures the high/low of the first N minutes after market open.
@@ -28,7 +28,7 @@ Trade Execution & Management — Places and actively manages orders via the IBKR
 
 The bot connects to Interactive Brokers through ib_async and is designed for paper trading by default before going live.
 
-Features
+# Features
 
 ORB Engine — Uses candle high/low (not open/close) to define range thresholds for precise breakout detection.
 GEX Analysis — Integrates real-time gamma calculations to contextualize volatility and optimize entries, particularly for 0DTE and 1DTE options.
@@ -40,7 +40,8 @@ Structured Logging — Full trade and system logging via loguru to file and cons
 Test Suite — pytest-based tests for strategy logic and API interactions with mock support.
 
 
-Project Structure
+# Project Structure
+
 Bot_ORB_Gamma/
 ├── core/               # Shared utilities, global config loading, base classes
 ├── execution/          # Order lifecycle management, position tracking, order routing
@@ -124,7 +125,7 @@ trade_management:
 Never commit real API keys or account credentials to version control. Use environment variables or a .env file (git-ignored) to inject secrets at runtime.
 
 
-Usage
+# Usage
 
 Start TWS or IB Gateway and ensure API connections are enabled.
 Update config.yaml with your connection details and desired parameters.
@@ -133,7 +134,8 @@ Run the bot:
 bashpython main.py
 Logs are written to trading_bot.log (configurable in config.yaml). The bot will wait for market open, build the opening range, then begin monitoring for breakouts.
 
-Trading Strategy
+# Trading Strategy
+
 The bot follows a four-stage intraday pipeline:
 StageDescription1 — Opening RangeCaptures the high and low of the first N minutes after market open (default: 15 min).2 — Breakout DetectionMonitors subsequent candles; triggers a signal when price closes above/below the range.3 — GEX ConfirmationCross-references the breakout direction with gamma exposure levels to filter noise.4 — ExecutionSubmits entry (limit), take-profit (limit), and stop-loss (stop) orders; manages trailing stop once activation threshold is reached.
 
@@ -145,7 +147,7 @@ Documentation
 Additional reference documents are included in the repository:
 FileContentsARCHITECTURE.mdStructural design overview and module responsibilitiesGEX_Development_Plan.mdGamma exposure math, data pipeline specificationsIBKR_Requirements.mdIBKR API prerequisites, port configuration, connection setupplan_trade_execution.mdTrade lifecycle logic, order fill managementroadmap_Program.mdDevelopment roadmap and planned features
 
-Disclaimer
+# Disclaimer
 
 This software is provided for educational and research purposes only.
 Algorithmic trading involves significant financial risk. Past performance does not guarantee future results. Use paper trading to validate the strategy before deploying real capital. The authors assume no responsibility for any financial losses incurred through use of this software.
